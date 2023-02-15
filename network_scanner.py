@@ -1,8 +1,8 @@
-from scapy.all import *
+from scapy.all import ARP,Ether,srp1
 import get_net_info
 import threading
-from Hostname_resolver import *
-from port_scanner import *
+from Hostname_resolver import Hostname_Resolver
+from port_scanner import PortScanner
 from Device import Device
 from network_transmition_scanner import network_transmition_scanner
 
@@ -88,13 +88,6 @@ class network_scanner():
         if response:
           with self.lock:
             self.results[response[ARP].psrc]=response[ARP].hwsrc
-
-  #def exit(self):
-    #while True:
-      #if keyboard.is_pressed('q'):
-        #scanning=False
-        #print('exiting programm')
-        #quit()
 
   def close_all_tools(self):
     self.name_resolver.scanning=False

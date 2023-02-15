@@ -8,7 +8,7 @@ class network_transmition_scanner():
         self.scanning=True
 
     def run_scanner(self):
-        sniff(prn=self.packet_callback)
+        sniff(prn=self.packet_callback,store=False)
         
     def packet_callback(self,packet):
         if self.scanning==False:

@@ -6,7 +6,7 @@ class Hostname_Resolver():
         self.scanning=True
     
     def start_mdsn_sniffing(self):
-        sniff(lfilter=self.is_mdns,prn=self.mdns_resolve_name)
+        sniff(lfilter=self.is_mdns,prn=self.mdns_resolve_name,store=False)
 
     def is_mdns(self,p):
         if not self.scanning:

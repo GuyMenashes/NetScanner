@@ -10,7 +10,7 @@ class port_connections_scanner():
 
     def run_scanner(self):
         # Start sniffing packets
-        sniff(lfilter=self.packet_filter, prn=self.packet_handler)
+        sniff(lfilter=self.packet_filter, prn=self.packet_handler,store=False)
 
     # Define a function to handle incoming packets
     def packet_handler(self,packet):
