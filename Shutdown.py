@@ -21,5 +21,3 @@ def restart(ip):
         return errors
 
     return output.stdout.decode(encoding='utf-8',errors='ignore')
-
-restart('127.0.0.1')
