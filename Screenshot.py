@@ -63,9 +63,5 @@ def take_screenshot(lock):
 
     img.paste(cursor, pos, cursor)
 
-    p=time.time()
     with lock:
         img.save("shot.jpg", 'JPEG', quality=50)
-    print(time.time()-p)
-
-take_screenshot(threading.Lock())
