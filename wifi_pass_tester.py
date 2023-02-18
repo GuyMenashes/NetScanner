@@ -84,4 +84,5 @@ def is_good_pass(password):
 
     return reasons
 
+print(get_wifi_password())
 print(is_good_pass(get_wifi_password()))
