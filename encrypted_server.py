@@ -32,14 +32,14 @@ class encrypted_server:
     def recieve(self,size=1024,isBytes=False):
         enc_recieved=self.client.recv(size)
         if not enc_recieved:
-            return
+            return None
         try:
-            text=self.encoder.decrypt(enc_recieved)
+            data=self.encoder.decrypt(enc_recieved)
         except:
             return None
         if isBytes:
-            return text
-        return text.decode()
+            return data
+        return data.decode()
 
     def generate_keys(self):
         (pubKey,privKey)=rsa.newkeys(1024) 

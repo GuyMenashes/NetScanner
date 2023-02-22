@@ -39,12 +39,11 @@ class encrypted_client:
     
     def recieve(self,size=1024,isBytes=False):
         enc_recieved=self.soc.recv(size)   
-
         try:
-            text=self.encoder.decrypt(enc_recieved)
+            data=self.encoder.decrypt(enc_recieved)
             if isBytes:
-                return text
-            return text.decode()
+                return data
+            return data.decode()
         except:
             return None
         
