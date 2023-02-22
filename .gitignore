@@ -130,4 +130,5 @@ dmypy.json
 
 # Projet specific
 keys
-test
+test.py
+shot.jpg
