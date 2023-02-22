@@ -1,5 +1,7 @@
 import re
 import subprocess
+import random
+import time
 
 def get_wifi_password():
     command=['netsh', 'wlan', 'show', 'interfaces']
@@ -12,15 +14,18 @@ def get_wifi_password():
         if 'Profile' in line:
                 name = line.split(':')[-1].strip()
     if not name:
-        return 'name not found'
+        return
     
     command = 'for /f "skip=9 tokens=1,2 delims=:" %i in (\'netsh wlan show profiles\') do @echo %j | findstr -i -v echo | netsh wlan show profiles %j key=clear'
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     txt = result.stdout.decode('utf-8').split('=======================================================================')
+    net=None
     for i in range(len(txt)):
         if f'Profile {name} on interface' in txt[i]:
-             net=txt[i+1]
-
+             net=txt[i+1]   
+    if not net:
+        return
+    
     net=net.split('\n')
     password=None
     for line in net:
@@ -47,8 +52,8 @@ def is_good_pass(password):
     if not re.search("[0-9]", password):
         reasons.append('Password should contain at least one number')
     
-    if not re.search("[!@#$%^&*()-_+=]" , password):
-        reasons.append('Password should contain at least one of the special characters: !@#$%^&*()-_+=')
+    if not re.search("[!@#$%^&*()-_+=|\~><`:]" , password):
+        reasons.append('Password should contain at least one of the special characters: !@#$%^&*()-_+=|\\~><`:')
     
     # Check for weak substrings
     weak_substrings = ['password', '123456', 'qwerty', 'admin', 'letmein']
@@ -84,5 +89,42 @@ def is_good_pass(password):
 
     return reasons
 
-print(get_wifi_password())
-print(is_good_pass(get_wifi_password()))
+def generate_password():
+    MAX_LEN = 12
+
+    DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] 
+    LOCASE_CHARACTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+                        'i', 'j', 'k', 'm', 'n', 'o', 'p', 'q',
+                        'r', 's', 't', 'u', 'v', 'w', 'x', 'y',
+                        'z']
+    
+    UPCASE_CHARACTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+                        'I', 'J', 'K', 'M', 'N', 'O', 'P', 'Q',
+                        'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+                        'Z']
+    
+    SYMBOLS = ['@', '#', '$', '%', '=', ':', '?', '.', '/', '|', '~', '>',
+            '*', '(', ')', '<']
+    
+    # combines all the character arrays above to form one array
+    COMBINED_LIST = DIGITS + UPCASE_CHARACTERS + LOCASE_CHARACTERS + SYMBOLS
+
+    password=''
+    
+    while not is_good_pass(password):
+        # randomly select at least one character from each character set above
+        rand_digit = random.choice(DIGITS)
+        rand_upper = random.choice(UPCASE_CHARACTERS)
+        rand_lower = random.choice(LOCASE_CHARACTERS)
+        rand_symbol = random.choice(SYMBOLS)
+
+        password = rand_digit + rand_upper + rand_lower + rand_symbol
+        
+        for x in range(MAX_LEN - 4):
+            password += random.choice(COMBINED_LIST)
+
+            rotation_amount=random.randint(0,3)
+
+            password=password[-rotation_amount:]+password[:-rotation_amount]
+            
+    return password
