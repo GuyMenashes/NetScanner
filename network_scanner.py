@@ -40,7 +40,7 @@ class network_scanner():
         device.is_alive=False
     
     for ip,mac in self.results.items():
-      d=Device(ip,mac)
+      d=Device(ip,mac,self.ps,self.name_resolver)
       self.devices.append(d)
   
   def resolve_names(self):

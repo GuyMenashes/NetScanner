@@ -111,7 +111,7 @@ def generate_password():
 
     password=''
     
-    while not is_good_pass(password):
+    while len(is_good_pass(password))!=0:
         # randomly select at least one character from each character set above
         rand_digit = random.choice(DIGITS)
         rand_upper = random.choice(UPCASE_CHARACTERS)
