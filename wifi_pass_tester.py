@@ -128,3 +128,5 @@ def generate_password():
             password=password[-rotation_amount:]+password[:-rotation_amount]
             
     return password
+
+print(is_good_pass(get_wifi_password()))
