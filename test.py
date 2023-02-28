@@ -1,15 +1,12 @@
-from scapy.all import *
-class b:
-    def __init__(self,a) -> None:
-        self.a=a
-    
-    def p(self):
-        print(self.a.name)
+import tkinter as tk
+from tkinter import ttk
 
-class a():
-    def __init__(self):
-        self.name='f'
-        self.wee=b(self)
+root=tk.Tk()
+root.title("ee")
 
-f=a()
-f.wee.p()
+table=ttk.Treeview(root, columns=["1","2","3"], show="headings", height=31)
+table.pack()
+table.insert("","end",text="---",values=["","",""])
+table.tag_configure("oddrow", foreground="red")
+
+root.mainloop()

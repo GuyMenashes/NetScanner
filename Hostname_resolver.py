@@ -1,9 +1,11 @@
 from scapy.all import *
+import get_net_info
 
 class Hostname_Resolver():
     def __init__(self):
         self.devices={}
         self.scanning=True
+        self.my_ip=get_net_info.get_ip_info()[0]
     
     def start_mdsn_sniffing(self):
         sniff(lfilter=self.is_mdns,prn=self.mdns_resolve_name,store=False)
@@ -14,6 +16,8 @@ class Hostname_Resolver():
         return IP in p and p[IP].dst=='224.0.0.251' and DNS in p and DNSRR in p[DNS] and p[DNS][DNSRR].type==12
 
     def mdns_resolve_name(self,p):
+        if p[IP].src==self.my_ip:
+            return
         name=p[DNS][DNSRR].rrname.decode()
 
         if 'in-addr' in name:

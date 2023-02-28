@@ -25,24 +25,23 @@ class PortScanner():
         179: "BGP (Border Gateway Protocol)",
         443: "HTTPS (HTTP Secure)",
         465: "SMTPS (SMTP Secure)",
-        500: "ISAKMP (Internet Security Association and Key Management Protocol)",
         587: "Submission (SMTP for email submission)",
         993: "IMAPS (IMAP Secure)",
         995: "POP3S (POP3 Secure)",
         1433: "Microsoft SQL Server",
         3389: "RDP (Remote Desktop Protocol)",
-        8000:"Commonly used as an alternate HTTP port. Some firewalls use it for HTTP web administration",
+        8000:"Commonly used as an alternate HTTP port",
         8080: "HTTP alternate (commonly used for web servers)",
         8443: "HTTPS alternate",
         }
 
-    def scanner(self,ip,start,end,results):
+    def scanner(self,ip,start,end,results,wait_time):
         for port in range(start, end):
             if not self.scanning:
                 quit()
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.1)
+                sock.settimeout(wait_time)
                 result = sock.connect_ex((ip, port))
                 if result == 0:
                     with self.lock:
@@ -53,7 +52,7 @@ class PortScanner():
             except socket.error:
                 print("Could not connect to server.")
 
-    def intense_scan(self,ip,start,end,chunk_size,mode='simple')->list|dict:
+    def intense_scan(self,ip,start,end,chunk_size,accuracy,mode='simple')->list|dict:
         ''' Perform a scan on the port range provided. Every thread gets the number of ports specified in the chunk size parameter.
         Parameters
         ----------
@@ -72,6 +71,8 @@ class PortScanner():
         '''
         if mode not in ['simple','detailed']:
             return 'invalid mode'
+                
+        wait_time=accuracy*0.03
         
         results=[]
         
@@ -80,7 +81,7 @@ class PortScanner():
         for i in range(start, end, chunk_size):
             start = i
             end = i + chunk_size
-            t = threading.Thread(target=self.scanner, args=(ip,start, end,results))
+            t = threading.Thread(target=self.scanner, args=(ip,start, end,results,wait_time))
             threads.append(t)
 
         for t in threads:

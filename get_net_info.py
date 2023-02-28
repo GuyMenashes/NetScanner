@@ -1,5 +1,6 @@
 import subprocess
 from netaddr import IPNetwork
+import re
 
 def get_ip_info()->tuple[str,str,str,list[str]]:
   '''
@@ -12,12 +13,14 @@ def get_ip_info()->tuple[str,str,str,list[str]]:
   output=output[output.find('Wi-Fi:'):]
 
   lines = output.split('\n')
-  for line in lines:
+  for i,line in enumerate(lines):
       if 'Subnet Mask' in line:
           subnet_mask = line.split(':')[-1].strip()
       elif 'IPv4' in line:
-          ip = (line.split(':')[-1].strip()).replace('(Preferred)','')
+          ip = (line.split(':')[-1].strip())[:line.split(':')[-1].strip().find("(")]
       elif 'Default Gateway' in line:
+          if re.search("[a-z]", line):
+              line=lines[i+1]
           defult_gateway = line.split(':')[-1].strip()
 
   network = IPNetwork('/'.join([ip, subnet_mask]))

@@ -1,5 +1,5 @@
 import threading
-from encrypted_server import encrypted_server
+import encrypted_server
 import zlib
 from Screenshot import take_screenshot
 import win32api, win32con    
