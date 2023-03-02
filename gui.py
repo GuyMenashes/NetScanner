@@ -6,6 +6,9 @@ import threading
 import get_net_info
 import Device
 from PIL import Image,ImageTk
+from shutdown_restart import *
+import textwrap
+import re
 
  # function to update device table
 def update_device_table():
@@ -80,7 +83,7 @@ def update_progress_bar():
     if not scanning:
         progress_bar["value"]=0
     
-    if progress_bar["value"]>=len(net_scanner.ips_to_scan) and progress_bar["value"]+10<len(net_scanner.ips_to_scan)+100:
+    if progress_bar["value"]>=len(net_scanner.ips_to_scan) and progress_bar["value"]+10<len(net_scanner.ips_to_scan)+140:
         progress_bar["value"]+=10
         root.after(1000,update_progress_bar)
     elif progress_bar["value"]<len(net_scanner.ips_to_scan):
@@ -104,7 +107,7 @@ def start_scan():
     scanning_thr=threading.Thread(target=net_scanner.scan_network)
     scanning_thr.start()
 
-    progress_bar["maximum"]=len(net_scanner.ips_to_scan)+100
+    progress_bar["maximum"]=len(net_scanner.ips_to_scan)+140
 
     stop_button.config(state=tk.NORMAL)
     update_progress_bar()
@@ -150,6 +153,7 @@ def show_popup_menu(event):
             popup_menu.add_command(label="Try to resolve name",command=lambda:try_to_resolve_name(row_num),state=tk.DISABLED)
             popup_menu.add_command(label="Scan Popular Ports",command=lambda:popular_port_scan(row_num),state=tk.DISABLED)
             popup_menu.add_command(label="Intense Port Scan",command=lambda:create_port_scan_popup(row_num),state=tk.DISABLED)
+
         popup_menu.add_separator()
         popup_menu.add_command(label="Copy IP Address", command=lambda: copy_to_clipboard(device_table.item(row_id, "values")[1]))
         popup_menu.add_command(label="Copy MAC Address", command=lambda: copy_to_clipboard(device_table.item(row_id, "values")[2]))
@@ -157,7 +161,83 @@ def show_popup_menu(event):
         popup_menu.add_command(label="Copy Data Transfered", command=lambda: copy_to_clipboard(device_table.item(row_id, "values")[4]))
         popup_menu.add_command(label="Copy Open Ports", command=lambda: copy_to_clipboard(' '.join(net_scanner.devices[row_num].get_port_desc())))
 
+        popup_menu.add_separator()
+        popup_menu.add_command(label="Shutdown", command=lambda: shutdown_restart_window(device_table.item(row_id, "values")[1],'Shutdown'))
+        popup_menu.add_command(label="Restart", command=lambda: shutdown_restart_window(device_table.item(row_id, "values")[1],'Restart'))
+
         popup_menu.post(event.x_root, event.y_root)
+
+def run_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label):
+    run_button.config(state=tk.DISABLED)
+
+    if not re.match(r'^\d+$',wait_time_entry.get()) or int(wait_time_entry.get())>315360000:
+        if not re.match(r'^\d+$',wait_time_entry.get()) :
+            messagebox.showerror("Error", "Invalid Wait Time Input! Check It and try again!")
+        else:
+            messagebox.showerror("Error", "Wait time has to be smaller than 315360000 seconds (ten years)")
+        message=message_entry.get("1.0", "end-1c")
+        time=wait_time_entry.get()
+        status=result_value_label.cget("text")
+        popup.destroy()
+        shutdown_restart_window(ip,action,message,time,status)
+        return
+    
+    output=[]
+
+    if action=="Shutdown":
+        action_thr=threading.Thread(target=lambda:shutdown(output,ip,wait_time_entry.get(),message_entry.get("1.0", "end-1c")))
+    if action=="Restart":
+        action_thr=threading.Thread(target=lambda:restart(output,ip,wait_time_entry.get(),message_entry.get("1.0", "end-1c")))
+    
+    action_thr.start()
+
+    wait_for_result(popup,output,result_value_label,run_button)
+
+def wait_for_result(popup,output,result_value_label,run_button):
+    if len(output)==0:
+        popup.after(50,lambda: wait_for_result(popup,output,result_value_label,run_button))
+        return
+            
+    line_width = 50
+    splited_text ="\n".join(textwrap.wrap(output[0], width=line_width))
+    if "Succes!" in output[0]:
+        result_value_label.config(text=splited_text,background="green")
+    else:
+        result_value_label.config(text=splited_text,background="red")
+
+    run_button.config(state=tk.NORMAL)
+
+def shutdown_restart_window(ip,action,message='',time='',status='\n\n'):
+    # Create a new popup window
+    popup = tk.Toplevel(root)
+    popup.title(f"{action} {ip}")
+    popup.resizable(False,False)
+
+    # Add a label and entry for wait time
+    wait_time_label = ttk.Label(popup, text="Wait Time (seconds):")
+    wait_time_label.pack() 
+    wait_time_entry = ttk.Entry(popup,width=17)
+    wait_time_entry.insert(0,time)
+    wait_time_entry.pack()
+
+    # Add a label and entry for message
+    message_label = ttk.Label(popup, text="Message:")
+    message_label.pack()
+    message_entry = tk.Text(popup, width=30,height=5)
+    message_entry.insert('1.0',message)
+    message_entry.pack(padx=10)
+
+    # Add buttons for run and cancel
+    run_button = ttk.Button(popup, text="Run",width=18, command=lambda:run_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label))
+    run_button.pack(pady=5)
+
+    # Add a label for result
+    result_label = ttk.Label(popup, text="Result:")
+    result_label.pack()
+    result_value_label = tk.Label(popup,justify=tk.LEFT,text=status,anchor=tk.W)
+    result_value_label.pack(anchor='w')
+
+    popup.mainloop()
 
 def copy_to_clipboard(value):
     root.clipboard_clear()

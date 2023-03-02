@@ -7,6 +7,7 @@ from network_transmition_scanner import network_transmition_scanner
 import re
 import socket
 import subprocess
+import get_net_info
 
 class network_scanner():
   def __init__(self) :
@@ -22,6 +23,7 @@ class network_scanner():
     self.net_transfer=network_transmition_scanner()
     net_transfer_thr=threading.Thread(target=self.net_transfer.run_scanner)
     net_transfer_thr.start()
+    self.my_ip=get_net_info.get_ip_info()[0]
     self.scanning=False
     self.is_ps_all=False
     self.is_resolving_names=False
@@ -164,7 +166,7 @@ class network_scanner():
 
       #check if all adresses are valid ip adresses, raises error if not
       for ip in ip_list:
-        if ip.count(".")!=3:
+        if ip.count(".")!=3 or not self.is_in_lan(ip):
            return False
         socket.inet_aton(ip)
 
@@ -173,3 +175,20 @@ class network_scanner():
     
     except:
        return False
+    
+  def is_in_lan(self,ip):
+      net_info=get_net_info.get_ip_info()
+      my_ip=self.my_ip.split('.')
+      ip=ip.split('.')
+      subnet_mask=net_info[2].split('.')
+
+      ip=list(map(int,ip))
+      my_ip=list(map(int,my_ip))
+      subnet_mask=list(map(int,subnet_mask))
+
+      on_lan=True
+      for i in range(len(ip)):
+          if ip[i]&subnet_mask[i]!=my_ip[i]&subnet_mask[i]:
+              on_lan=False
+      
+      return on_lan
