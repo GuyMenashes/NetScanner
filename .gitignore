@@ -129,6 +129,5 @@ dmypy.json
 .pyre/
 
 # Projet specific
-keys
 test.py
 shot.jpg
