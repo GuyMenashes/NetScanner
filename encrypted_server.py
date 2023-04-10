@@ -3,7 +3,7 @@ from cryptography.fernet import Fernet
 import socket
 
 class encrypted_server:
-    def _init_(self,port):
+    def __init__(self,port):
         #establish connection
         self.server_socket=socket.socket()
         self.server_socket.bind(('0.0.0.0',port))

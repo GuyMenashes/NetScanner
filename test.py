@@ -1,2 +1,7 @@
+import pynput
 
-a.recv(10,timeout=1)
+l=pynput.mouse.Listener()
+
+l.start()
+
+l.stop()

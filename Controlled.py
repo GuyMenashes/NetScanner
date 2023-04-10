@@ -8,7 +8,7 @@ import keyboard
 from socket import timeout
 
 class RemoteControlled:
-    def _init_(self):
+    def __init__(self):
         self.running=True
         mouse_thread=threading.Thread(target=self.mouse_control)
         mouse_thread.start()
@@ -34,7 +34,8 @@ class RemoteControlled:
 
     def mouse_control(self):
         self.mouse_server=encrypted_server(55551)
-        self.mouse_server.start_server()
+        self.mouse_server.start_server()   
+        self.mouse_server.client.settimeout(0.1)
         width,height=self.screen_size()
         self.mouse_server.send(f'{width},{height}')
         is_left_pressed=False
@@ -42,6 +43,8 @@ class RemoteControlled:
         while self.running:
             try:
                 text= self.mouse_server.recieve()
+            except timeout:
+                continue
             except:
                 self.running=False
                 break
@@ -63,18 +66,15 @@ class RemoteControlled:
             elif is_right_pressed and int(text[3])==0:
                 is_right_pressed=False
                 win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP,x,y,0,0)
-        print('mouse')
-
 
     def keybord_control(self):
         self.keybord_server=encrypted_server(33331)
         self.keybord_server.start_server(first_connection=False)
-        self.keybord_server.server_socket.settimeout(1)
+        self.keybord_server.client.settimeout(0.1)
         while self.running:
             try:
                 text= self.keybord_server.recieve()
             except timeout:
-                print(1)
                 continue
             except:
                 self.running=False
@@ -86,7 +86,6 @@ class RemoteControlled:
                 keyboard.press(text[0])
             else:
                 keyboard.release(text[0])
-        print('keyboard')
 
     def screenshot(self,lock):
         while self.running:
@@ -115,5 +114,9 @@ class RemoteControlled:
                 self.running=False
                 break
             with lock:
-                with open("shot.jpg",'rb') as f:
-                    image=f.read()
+                try:
+                    with open("shot.jpg",'rb') as f:
+                        image=f.read()
+                except:
+                    print('e')
+                    continue

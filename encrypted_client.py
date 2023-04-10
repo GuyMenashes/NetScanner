@@ -45,6 +45,8 @@ class encrypted_client:
                 return data
             return data.decode()
         except:
+            if enc_recieved==b'':
+                raise TimeoutError
             return None
         
     def generate_keys(self):
