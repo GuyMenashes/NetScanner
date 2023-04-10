@@ -92,9 +92,7 @@ class RemoteController:
             cv2.imshow("img", img)
             # Press Esc key to exit
             if cv2.waitKey(1) == 27:
-                print(count,sum,sum/count, lost_count)
+                print(count,sum,f'{1/(sum/count)} fps',lost_count)
                 break
         
         cv2.destroyAllWindows()
-
-RemoteController('192.168.1.243')

@@ -28,21 +28,18 @@ class password_tester():
                     name = line.split(':')[-1].strip()
         if not name:
             self.password='Failed to find password'
-        
-        command = 'for /f "skip=9 tokens=1,2 delims=:" %i in (\'netsh wlan show profiles\') do @echo %j | findstr -i -v echo | netsh wlan show profiles %j key=clear'
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        txt = result.stdout.decode('utf-8').split('=======================================================================')
-        net=None
-        for i in range(len(txt)):
-            if f'Profile {name} on interface' in txt[i]:
-                net=txt[i+1]   
-        if not net:
-            self.password='Failed to find password'
             return
         
-        net=net.split('\n')
+        command = f'netsh wlan show profile {name} key=clear'
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        txt = result.stdout.decode('utf-8')
+        if 'not found' in txt:
+            self.password= 'Failed to find password'
+            return
+        
+        txt=txt.split('\n')
         password=None
-        for line in net:
+        for line in txt:
             if 'Key Content' in line:
                 password=line.split(':')[-1].strip()
         

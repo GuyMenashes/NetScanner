@@ -1,13 +1,14 @@
 import threading
-import encrypted_server
+from encrypted_server import encrypted_server
 import zlib
 from Screenshot import take_screenshot
 import win32api, win32con    
 import time
 import keyboard
+from socket import timeout
 
 class RemoteControlled:
-    def __init__(self):
+    def _init_(self):
         self.running=True
         mouse_thread=threading.Thread(target=self.mouse_control)
         mouse_thread.start()
@@ -16,6 +17,8 @@ class RemoteControlled:
         keyboard_thread=threading.Thread(target=self.keybord_control)
 
         keyboard_thread.start()
+
+        keyboard.hook_key('escape',self.exit_share)
 
         self.share_screen()
     
@@ -60,13 +63,19 @@ class RemoteControlled:
             elif is_right_pressed and int(text[3])==0:
                 is_right_pressed=False
                 win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP,x,y,0,0)
+        print('mouse')
+
 
     def keybord_control(self):
         self.keybord_server=encrypted_server(33331)
         self.keybord_server.start_server(first_connection=False)
+        self.keybord_server.server_socket.settimeout(1)
         while self.running:
             try:
                 text= self.keybord_server.recieve()
+            except timeout:
+                print(1)
+                continue
             except:
                 self.running=False
                 break
@@ -77,10 +86,15 @@ class RemoteControlled:
                 keyboard.press(text[0])
             else:
                 keyboard.release(text[0])
+        print('keyboard')
 
     def screenshot(self,lock):
         while self.running:
             take_screenshot(lock)
+
+    def exit_share(self,*args):
+        self.running=False
+        keyboard.unhook_all()
         
     def share_screen(self):
         lock=threading.Lock()
@@ -102,6 +116,4 @@ class RemoteControlled:
                 break
             with lock:
                 with open("shot.jpg",'rb') as f:
-                    image=f.read()     
-
-RemoteControlled()
+                    image=f.read()

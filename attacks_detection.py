@@ -66,6 +66,9 @@ class network_attack_detector:
         return on_lan
     
     def collect_ip_mac_pairs(self,pkt):
+        if not self.scanning:
+            quit()
+            
         if IP in pkt and Ether in pkt:
             if self.is_in_lan(pkt[IP].src):
                 self.real_ip_mac_pairs[pkt[Ether].src]=pkt[IP].src
@@ -93,7 +96,7 @@ class network_attack_detector:
 
             if src_mac in self.real_ip_mac_pairs.keys():
                 if self.real_ip_mac_pairs[src_mac]!=src_ip and not((pkt[Ether].src,pkt[Ether].dst) in self.arp_attacks.keys() and time.time()-self.arp_attacks[(pkt[Ether].src,pkt[Ether].dst)]<10):
-                    self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now()}")
+                    self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
                     self.arp_attacks[(pkt[Ether].src,pkt[Ether].dst)]=time.time()
                     return
 
@@ -110,13 +113,13 @@ class network_attack_detector:
 
             for pair,p_list in self.arp_packets.items():
                 if len(p_list) >=30 and not((pair[0],pair[1]) in self.arp_attacks.keys() and time.time()-self.arp_attacks[(pair[0],pair[1])]<10):
-                    self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now()}")
+                    self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now().strftime('%d/%m/%Y %H:%M:%')}")
                     self.arp_attacks[(pair[0],pair[1])]=time.time()
                     return
 
             # check for conflicting entries in ARP table
-            if src_mac != self.arp_table.get(src_ip) and not((pkt[Ether].src,pkt[Ether].dst) in self.arp_attacks.keys() and time.time()-self.arp_attacks[(pkt[Ether].src,pkt[Ether].dst)]<10):
-                self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now()}")
+            if self.arp_table.get(src_ip) and src_mac != self.arp_table.get(src_ip) and not((pkt[Ether].src,pkt[Ether].dst) in self.arp_attacks.keys() and time.time()-self.arp_attacks[(pkt[Ether].src,pkt[Ether].dst)]<10):
+                self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
                 self.arp_attacks[(pkt[Ether].src,pkt[Ether].dst)]=time.time()
                 return
             
@@ -142,7 +145,7 @@ class network_attack_detector:
             for protocol,limit in  self.Dos_MAX_PACKETS.items():
                 for ip, p_list in self.Dos_packets[protocol].items():
                     if len(p_list) >=  limit and not (ip in self.dos_attacks.keys() and time.time()-self.dos_attacks[ip]<10):
-                        self.attacks_records['dos'].append(f"Possible DoS attack from {ip} with {len(p_list)} {protocol} at {datetime.now()}")
+                        self.attacks_records['dos'].append(f"Possible DoS attack detected from {ip} with {len(p_list)} {protocol} at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
                         self.dos_attacks[ip]=time.time()
 
     def detect_broadcast_storms(self,pkt):
@@ -157,11 +160,13 @@ class network_attack_detector:
             self.brodcast_packets.append(time.time())
 
             if len(self.brodcast_packets)>600 and time.time()-self.brodcast_attack>10:
-                self.attacks_records['brodcast'].append(f'possible brodcast storm with {len(self.brodcast_packets)} pps at {datetime.now()}')
+                self.attacks_records['brodcast'].append(f'possible brodcast storm detected with {len(self.brodcast_packets)} pps at {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
                 self.brodcast_attack=time.time()
 
     #can show that someone is attempting to gather information about your network or exploit vulnerabilities 
     def detect_port_scanning(self,pkt):
+        if not self.scanning:
+            quit()
         if IP in pkt:
             if (TCP in pkt and pkt[TCP].flags == 0x02) or UDP in pkt:
                 src_ip=pkt[IP].src
@@ -171,7 +176,7 @@ class network_attack_detector:
 
                 for pair in self.port_scan_packets.keys():
                     for pkt_time,prt in self.port_scan_packets[pair]:
-                        if time.time()-pkt_time>120:
+                        if time.time()-pkt_time>10:
                             self.port_scan_packets[pair].remove((pkt_time,prt))
                 
                 if (src_ip,dst_ip) in self.port_scan_packets.keys():
@@ -190,7 +195,7 @@ class network_attack_detector:
 
                 for pair,p_list in self.port_scan_packets.items():
                     if len(p_list) >=30 and not ((pair[0],pair[1]) in self.dos_attacks.keys() and time.time()-self.dos_attacks[(pair[0],pair[1])]<10):
-                        self.attacks_records['ps'].append(f"Possible Port scanning by {pair[0]} on {pair[1]} with {len(p_list)} ports scanned at {datetime.now()}")
+                        self.attacks_records['ps'].append(f"Possible Port scanning detected by {pair[0]} on {pair[1]} with {len(p_list)} ports scanned at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
                         self.dos_attacks[(pair[0],pair[1])]=time.time()
 
     def malware_sig_detection(self):
@@ -255,11 +260,15 @@ class network_attack_detector:
 
         # Define a filter to only capture traffic that matches the malware signatures
         while True:
-            capture.sniff(1)
+            if not self.scanning:
+                capture.close()
+                loop.close()
+                quit()
+            capture.sniff(1,timeout=0.5)
             try:
                 #only if a packet was added to the packet list
                 capture.next_packet()
-                self.attacks_records['malware'].append(f'possible malware detected in a packet with http protocol at {datetime.now()}')
+                self.attacks_records['malware'].append(f'Possible malware detected in a packet with http protocol at {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}')
             except:
                 pass
         
@@ -275,10 +284,3 @@ class network_attack_detector:
 
         for t in threads:
             t.start()
-        
-        while True:
-            print(self.attacks_records['ps'])
-            time.sleep(10)
-
-s=network_attack_detector()
-s.start_sniffers()

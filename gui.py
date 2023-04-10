@@ -12,7 +12,7 @@ import textwrap
 import re
 from wifi_pass_tester import password_tester
 import traffic_testing
-import time
+import attacks_detection
 
  # function to update device table
 def update_device_table():
@@ -32,7 +32,6 @@ def update_device_table():
         scan_button.config(state=tk.NORMAL)
         scan_range_options.config(state=tk.NORMAL)
         scan_range_options.config(state="readonly")
-        scan_range_options.config(state=tk.NORMAL)
         device_table.delete(*device_table.get_children())
         devices = net_scanner.devices
         for i,device in enumerate(devices):
@@ -78,7 +77,7 @@ def update_device_table():
         except Exception as e:
             print(e)
             pass
-            
+
     root.update()
 
     root.after(400,update_device_table)
@@ -431,6 +430,25 @@ def animate_loading_gif(frame_idx=0):
     else:
         loading_animation_canvas.delete("all")
 
+def update_attack_logs():
+    logs=[arp_log,dos_log,brodcast_log,ps_log,malware_log]
+
+    for log in logs:
+        log.config(state='normal')
+
+    for i,record in enumerate(attack_detecter.attacks_records.values()):
+        for event in record:
+            if event.replace(' ','').replace('\n','') not in logs[i].get('1.0','end').replace(' ','').replace('\n',''):
+                line_width = 30
+                lined_text ="\n".join(textwrap.wrap(event, width=line_width))
+                lined_text+='\n\n'
+                logs[i].insert('end',lined_text)
+
+    for log in logs:
+        log.config(state='disabled')
+    
+    root.after(1500,update_attack_logs)
+
 my_ip = get_net_info.get_ip_info()[0]
 router_ip = get_net_info.get_ip_info()[1]
 
@@ -554,6 +572,82 @@ action_bar.add(sniff_share_frame,text="Sniff Share")
 
 remote_control_frame=ttk.Frame(action_bar)
 action_bar.add(remote_control_frame,text="Remote Control")
+
+#create widgets for attack detection window
+attack_detecter=attacks_detection.network_attack_detector()
+attack_detecter.start_sniffers()
+
+arp_headline=ttk.Label(attack_detection_frame,text="Arp Spoffing:",font=('Arial',20))
+arp_headline.grid(row=0, column=0, padx=5, pady=5)
+arp_log=tk.Text(attack_detection_frame,width=34,height=38)
+arp_log.grid(row=1, column=0, padx=5, pady=5)
+arp_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+arp_scrollbar.grid(row=1, column=1, padx=0, pady=5,sticky='ns')
+arp_log.config(yscrollcommand=arp_scrollbar.set)
+arp_scrollbar.config(command=arp_log.yview)
+exp_text="ARP spoofing consists of sending falsified arp messages in order to link the attacker's MAC address with the IP address of another device (usually the router). This allows the attacker to intercept and manipulate network traffic."
+line_width = 59
+lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+arp_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+arp_explanation_label.grid(row=2, column=0,columnspan=2, padx=5, pady=5)
+
+dos_headline=ttk.Label(attack_detection_frame,text="Dos Attack:",font=('Arial',20))
+dos_headline.grid(row=0, column=2, padx=5, pady=5)
+dos_log=tk.Text(attack_detection_frame,width=34,height=38)
+dos_log.grid(row=1, column=2, padx=5, pady=5)
+dos_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+dos_scrollbar.grid(row=1, column=3, padx=0, pady=5,sticky='ns')
+dos_log.config(yscrollcommand=dos_scrollbar.set)
+dos_scrollbar.config(command=dos_log.yview)
+line_width = 59
+exp_text="A Denial-of-Service attack (DOS) aims to disrupt the availability of a network, website, or other online service by overwhelming it with traffic or other requests, usually using TCP, UPD or ICMP packets"
+lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+dos_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+dos_explanation_label.grid(row=2, column=2,columnspan=2, padx=5, pady=5)
+
+brodcast_headline=ttk.Label(attack_detection_frame,text="Brodcast Storm:",font=('Arial',20))
+brodcast_headline.grid(row=0, column=4, padx=5, pady=5)
+brodcast_log=tk.Text(attack_detection_frame,width=34,height=38)
+brodcast_log.grid(row=1, column=4, padx=5, pady=5)
+brodcast_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+brodcast_scrollbar.grid(row=1, column=5, padx=0, pady=5,sticky='ns')
+brodcast_log.config(yscrollcommand=brodcast_scrollbar.set)
+brodcast_scrollbar.config(command=brodcast_log.yview)
+exp_text="A broadcast storm is when a broadcast or multicast packet is continuously transmitted and retransmitted by every device on a network, creating a loop of excessive traffic that can significantly slow down or even crash the network."
+line_width = 59
+lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+brodcast_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+brodcast_explanation_label.grid(row=2, column=4,columnspan=2, padx=5, pady=5)
+
+ps_headline=ttk.Label(attack_detection_frame,text="Port Scanning:",font=('Arial',20))
+ps_headline.grid(row=0, column=6, padx=5, pady=5)
+ps_log=tk.Text(attack_detection_frame,width=34,height=38)
+ps_log.grid(row=1, column=6, padx=5, pady=5)
+ps_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+ps_scrollbar.grid(row=1, column=7, padx=0, pady=5,sticky='ns')
+ps_log.config(yscrollcommand=ps_scrollbar.set)
+ps_scrollbar.config(command=ps_log.yview)
+exp_text="Port scanning is used to discover which network ports are open on a target computer or device. Hackers may use port scanning to identify open ports that could be used as entry points for a cyber attack."
+line_width = 59
+lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+ps_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+ps_explanation_label.grid(row=2, column=6,columnspan=2, padx=5, pady=5)
+
+malware_headline=ttk.Label(attack_detection_frame,text="Malware Signatures:",font=('Arial',20))
+malware_headline.grid(row=0, column=8, padx=5, pady=5)
+malware_log=tk.Text(attack_detection_frame,width=34,height=38)
+malware_log.grid(row=1, column=8, padx=5, pady=5)
+malware_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+malware_scrollbar.grid(row=1, column=9, padx=0, pady=5,sticky='ns')
+malware_log.config(yscrollcommand=malware_scrollbar.set)
+malware_scrollbar.config(command=malware_log.yview)
+exp_text="Malware signatures are unique identifiers that can be used to identify a particular piece of malware, based on its code or behavior. This searches for malware on network packets."
+line_width = 58
+lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+malware_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=48,font=('Arial',8),borderwidth=5,relief='solid')
+malware_explanation_label.grid(row=2, column=8,columnspan=2, padx=5, pady=5)
+
+update_attack_logs()
 
 #create frames for network tester
 network_tester=traffic_testing.traffic_tester()
@@ -807,6 +901,8 @@ device_table.bind("<ButtonRelease-3>", lambda event: show_popup_menu(event))
 
 # start main loop
 root.mainloop()
+
+attack_detecter.scanning=False
 
 net_scanner.stop_flag=True
 
