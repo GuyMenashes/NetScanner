@@ -32,7 +32,46 @@ class RemoteController:
         if not self.running:
             quit()
         try:
-            self.keyboard_client.send(f'{key_event.name},{key_event.event_type}')
+            hebrew_english_dict={'א':'t',
+                     'ב':'c',
+                     'ג':'d',
+                     'ד':'s',
+                     'ה':'v',
+                     'ו':'u',
+                     'ז':'z',
+                     'ח':'j',
+                     'ט':'y',
+                     'י':'h',
+                     'כ':'f',
+                     'ל':'k',
+                     'מ':'n',
+                     'נ':'b',
+                     'ס':'x',
+                     'ע':'g',
+                     'פ':'p',
+                     'צ':'m',
+                     'ק':'e',
+                     'ר':'r',
+                     'ש':'a',
+                     'ת':',',
+                     '/':'q',
+                     "'":'w',
+                     ',':"'",
+                     'ף':';',
+                     '[':']',
+                     ']':'[',
+                     ';':'`',
+                     'ץ':'.',
+                     '.':'/',
+                     'ם':'o',
+                     'ך':'l',
+                     'ן':'i'                  
+            }   
+            if key_event.name in hebrew_english_dict.keys():
+                self.keyboard_client.send(f'{hebrew_english_dict[key_event.name]},{key_event.event_type}')
+            else:
+                self.keyboard_client.send(f'{key_event.name},{key_event.event_type}')
+
         except:
             self.running=False 
             print('controlled computer disconnected')
@@ -109,7 +148,6 @@ class RemoteController:
             a=time.time()
             try:
                 recieved=self.screen_client.recieve(500_000,isBytes=True)
-                print(datetime.datetime.now())
             except:
                 keyboard.unhook_all()
                 self.mouse_listener.stop()
@@ -134,7 +172,7 @@ class RemoteController:
             cv2.imshow("img", img)
             # Press Esc key to exit
             if cv2.waitKey(1) == 27:
-                print(count,sum,f'{1/(sum/count)} fps',lost_count)
                 break
         
         cv2.destroyAllWindows()
+        print(count,sum,f'{1/(sum/count)} fps',lost_count)

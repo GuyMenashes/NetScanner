@@ -6,6 +6,7 @@ import win32api, win32con
 import time
 import keyboard
 from socket import timeout
+import multiprocessing
 
 class RemoteControlled:
     def __init__(self):
@@ -87,22 +88,36 @@ class RemoteControlled:
             else:
                 keyboard.release(text[0])
 
+    def run_screenshot(self,lock):
+        while self.running:
+            try:
+                take_screenshot(lock)
+            except Exception as e:
+                print('screenshot error',e)
+                break
+
     def screenshot(self,lock):
         while self.running:
-            take_screenshot(lock)
+            p=multiprocessing.Process(target=self.run_screenshot,args=(lock,))
+            p.start()
+            while p.is_alive():
+                if self.running==False:
+                    p.terminate()
 
     def exit_share(self,*args):
         self.running=False
         keyboard.unhook_all()
         
     def share_screen(self):
-        lock=threading.Lock()
+        self.used=False
+        lock=multiprocessing.Lock()
         screenshot_thr=threading.Thread(target=self.screenshot,args=(lock,))
 
         self.screen_server=encrypted_server(19999)
         self.screen_server.start_server(first_connection=False)
         screenshot_thr.start()
         with lock:
+            self.used=True
             with open("shot.jpg",'rb') as f:
                 image=f.read()
 
@@ -114,6 +129,7 @@ class RemoteControlled:
                 self.running=False
                 break
             with lock:
+                self.used=True
                 try:
                     with open("shot.jpg",'rb') as f:
                         image=f.read()

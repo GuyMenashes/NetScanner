@@ -54,6 +54,7 @@ def take_screenshot(lock):
         return
     cursor, (hotspotx, hotspoty) = cursor_info
 
+   
     img = ImageGrab.grab(bbox=None, include_layered_windows=True)
 
     ratio = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
