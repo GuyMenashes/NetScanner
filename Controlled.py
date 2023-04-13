@@ -98,11 +98,9 @@ class RemoteControlled:
 
     def screenshot(self,lock):
         while self.running:
-            p=multiprocessing.Process(target=self.run_screenshot,args=(lock,))
-            p.start()
-            while p.is_alive():
-                if self.running==False:
-                    p.terminate()
+            t=threading.Thread(target=self.run_screenshot,args=(lock,))
+            t.start()
+            t.join()
 
     def exit_share(self,*args):
         self.running=False
@@ -110,7 +108,7 @@ class RemoteControlled:
         
     def share_screen(self):
         self.used=False
-        lock=multiprocessing.Lock()
+        lock=threading.Lock()
         screenshot_thr=threading.Thread(target=self.screenshot,args=(lock,))
 
         self.screen_server=encrypted_server(19999)

@@ -22,7 +22,6 @@ def listen_for_connections():
     RemoteControlled()
 
 if __name__=='__main__':
-    multiprocessing.freeze_support()
     listen_for_connections()
 
 
