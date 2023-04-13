@@ -14,6 +14,7 @@ def get_cursor():
         hbmp.CreateCompatibleBitmap(hdc, 36, 36)
         hdc = hdc.CreateCompatibleDC()
         hdc.SelectObject(hbmp)
+
     except Exception as e:
         try:
             hdc.DeleteDC()
@@ -29,7 +30,6 @@ def get_cursor():
     win32gui.DestroyIcon(hcursor)    
     win32gui.DeleteObject(hbmp.GetHandle())
     hdc.DeleteDC()
-
 
     pixdata = cursor.load()
 
@@ -51,6 +51,14 @@ def get_cursor():
     return (cursor, hotspot)
 
 def take_screenshot(lock):
+
+    img = ImageGrab.grab(bbox=None, include_layered_windows=True)
+
+    with lock:
+        img.save("shot.jpg", 'JPEG', quality=80)
+
+'''
+def take_screenshot(lock):
     try:
         cursor_info=get_cursor()
     except Exception as e:
@@ -59,17 +67,13 @@ def take_screenshot(lock):
         with lock:
             img.save("shot.jpg", 'JPEG', quality=50)
         return
-    
+
     cursor, (hotspotx, hotspoty) = cursor_info
+
 
     img = ImageGrab.grab(bbox=None, include_layered_windows=True)
 
     ratio = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
+'''
 
-    pos_win = win32gui.GetCursorPos()
-    pos = (round(pos_win[0]*ratio - hotspotx), round(pos_win[1]*ratio - hotspoty))
-
-    img.paste(cursor, pos, cursor)
-
-    with lock:
-        img.save("shot.jpg", 'JPEG', quality=50)
+take_screenshot(threading.Lock())

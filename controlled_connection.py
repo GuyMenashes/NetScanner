@@ -1,7 +1,6 @@
 from encrypted_server import encrypted_server
 import time
 from Controlled import RemoteControlled
-import multiprocessing
 
 def listen_for_connections():
     while True:

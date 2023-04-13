@@ -32,46 +32,7 @@ class RemoteController:
         if not self.running:
             quit()
         try:
-            hebrew_english_dict={'א':'t',
-                     'ב':'c',
-                     'ג':'d',
-                     'ד':'s',
-                     'ה':'v',
-                     'ו':'u',
-                     'ז':'z',
-                     'ח':'j',
-                     'ט':'y',
-                     'י':'h',
-                     'כ':'f',
-                     'ל':'k',
-                     'מ':'n',
-                     'נ':'b',
-                     'ס':'x',
-                     'ע':'g',
-                     'פ':'p',
-                     'צ':'m',
-                     'ק':'e',
-                     'ר':'r',
-                     'ש':'a',
-                     'ת':',',
-                     '/':'q',
-                     "'":'w',
-                     ',':"'",
-                     'ף':';',
-                     '[':']',
-                     ']':'[',
-                     ';':'`',
-                     'ץ':'.',
-                     '.':'/',
-                     'ם':'o',
-                     'ך':'l',
-                     'ן':'i'                  
-            }   
-            if key_event.name in hebrew_english_dict.keys():
-                self.keyboard_client.send(f'{hebrew_english_dict[key_event.name]},{key_event.event_type}')
-            else:
-                self.keyboard_client.send(f'{key_event.name},{key_event.event_type}')
-
+            self.keyboard_client.send(f'{key_event.scan_code},{key_event.event_type}')
         except:
             self.running=False 
             print('controlled computer disconnected')

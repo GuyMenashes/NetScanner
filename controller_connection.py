@@ -2,7 +2,7 @@ from encrypted_client import encrypted_client
 from Controller import RemoteController
 import time
 
-ip='192.168.1.243'
+ip='192.168.1.107'
 client=encrypted_client(ip,11123)
 try:
     client.run_server()
