@@ -13,6 +13,10 @@ import re
 from wifi_pass_tester import password_tester
 import traffic_testing
 import attacks_detection
+import socket
+from encrypted_client import encrypted_client
+from Controller import RemoteController
+import time
 
  # function to update device table
 def update_device_table():
@@ -449,8 +453,73 @@ def update_attack_logs():
     
     root.after(1500,update_attack_logs)
 
-my_ip = get_net_info.get_ip_info()[0]
-router_ip = get_net_info.get_ip_info()[1]
+def update_scale_value(val):
+    scale_value.set(str(int(float(val))))
+
+def control_request():
+    ip=controlled_ip_input.get()
+    if len(ip)<7 or re.search(r"[^0-9.]", ip) or ip.count('.')!=3:
+        messagebox.showerror("Error", "Invalid Ip, Check Input!")
+        return
+    ip_parts = ip.split('.')
+    for part in ip_parts:
+        if len(part)==0:
+            messagebox.showerror("Error", "Invalid Ip, Check Input!")
+            return
+    if not net_scanner.is_in_lan(ip):
+        messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
+        return
+    if ip==my_ip:
+        messagebox.showerror("Error","Ip cannot be your ip, Check Input!")
+        return
+    try:
+        socket.inet_aton(ip)
+        if int(ip_parts[-1])==0:
+            messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
+            return 
+    except:
+        messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
+        return
+    
+    name=controller_name_input.get()
+    if len(name)<3 or len(name)>30:
+        messagebox.showerror("Error", "Name has to be longer than 3 letters and shorter than 30!")
+        return
+    
+    reason=reason_input.get()
+    if len(reason)<5 or len(reason)>80:
+        messagebox.showerror("Error", "Reason has to be longer than 5 letters and shorter than 80!")
+        return
+    
+    control_button.config(state=tk.DISABLED)
+    
+    t=threading.Thread(target=send_request,args=(ip,name,reason))
+    t.start()
+    
+def send_request(ip,name,reason):
+    client=encrypted_client(ip,11123)
+    try:
+        client.run_server()
+    except:
+        request_result_label.config(text="could not initiate connection")
+        control_button.config(state=tk.NORMAL)
+        return
+    client.send(f'{name},{reason}')
+    respense=client.recieve()
+    if respense=='approved':
+        request_result_label.config(text="connecting...")
+        time.sleep(2) 
+        RemoteController(ip)
+        control_button.config(state=tk.NORMAL)
+    else:
+        request_result_label.config(text="connection denied!")
+        control_button.config(state=tk.NORMAL)
+try:
+    my_ip = get_net_info.get_ip_info()[0]
+    router_ip = get_net_info.get_ip_info()[1]
+except:
+    messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
+    quit()
 
 net_scanner = network_scanner()
 scanning = False
@@ -484,6 +553,7 @@ ttk.Style().configure("TRadiobutton", font=(font_family, font_size))
 ttk.Style().configure("TCheckbutton", font=(font_family, font_size))
 ttk.Style().configure("TCombobox", font=(font_family, font_size),height=100)
 ttk.Style().configure("Red.TLabel",foreground="red")
+ttk.Style().configure("Grey.TLabel",foreground="grey25")
 ttk.Style().configure("Orange.TLabel",foreground="DarkOrange3")
 ttk.Style().configure("Yellow.TLabel",foreground="goldenrod1")
 
@@ -547,6 +617,10 @@ latency_img = ImageTk.PhotoImage(latency_img)
 download_img=Image.open("download.png")
 download_img = ImageTk.PhotoImage(download_img)
 
+escape_img=Image.open("escape.png")
+escape_img=escape_img.resize((35,35))
+escape_img = ImageTk.PhotoImage(escape_img)
+
 #create action bar and add all window frames
 ttk.Style().configure('Custom.TNotebook', tabmargins=[2, 5, 2, 0])
 ttk.Style().configure('Custom.TNotebook.Tab', foreground='black', padding=[10, 5])
@@ -572,6 +646,93 @@ action_bar.add(sniff_share_frame,text="Sniff Share")
 
 remote_control_frame=ttk.Frame(action_bar)
 action_bar.add(remote_control_frame,text="Remote Control")
+
+#create frames for remote control
+escape_frame=ttk.Frame(remote_control_frame)
+escape_frame.pack(padx=5,pady=10)
+
+controlled_info_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
+controlled_info_frame.pack(padx=5, pady=0,fill=tk.X,anchor=tk.CENTER)
+
+controller_info_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
+controller_info_frame.pack(padx=5, pady=0,fill=tk.X)
+
+quality_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
+quality_frame.pack(padx=5, pady=0,fill=tk.X)
+
+request_frame=ttk.Frame(remote_control_frame)
+request_frame.pack(padx=5, pady=10)
+
+#create widgets for escape frame
+escape_label = ttk.Label(escape_frame,text="Press escape at any time to exit control! ",font=(25,25) ,image=escape_img,compound='right',style='Red.TLabel')
+escape_label.pack()
+
+#create widgets for controlled info frame
+controlled_info_heading_label=ttk.Label(controlled_info_frame,text="Controlled Computer Information",font=(15,15),style='Grey.TLabel',justify='center')
+controlled_info_heading_label.grid(row=0, column=0, padx=5, pady=10,columnspan=2, sticky='n')
+controlled_ip_label=ttk.Label(controlled_info_frame,text="Ip:",font=(20,20))
+controlled_ip_label.grid(row=1, column=0, padx=5, pady=10, sticky='e')
+controlled_ip_input=ttk.Entry(controlled_info_frame,width=35)
+controlled_ip_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
+controlled_info_frame.grid_columnconfigure(0, weight=1)
+controlled_info_frame.grid_columnconfigure(1, weight=1)
+
+#create widgets for controller info frame
+# add columnconfigure to make all columns the same weight
+controller_info_frame.columnconfigure(0, weight=26)
+controller_info_frame.columnconfigure(1, weight=1)
+controller_info_frame.columnconfigure(2, weight=1)
+controller_info_frame.columnconfigure(3, weight=20)
+
+# create widgets for controller info frame
+controller_info_heading_label=ttk.Label(controller_info_frame,text="My Information",font=(15,15),style='Grey.TLabel',justify='center')
+controller_info_heading_label.grid(row=0, column=0, padx=5, pady=10, columnspan=4, sticky='n')
+
+controller_name_label=ttk.Label(controller_info_frame,text="Name:",font=(20,20))
+controller_name_label.grid(row=1, column=0, padx=5, pady=10, sticky='e')
+controller_name_input=ttk.Entry(controller_info_frame,width=35)
+controller_name_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
+
+reason_label=ttk.Label(controller_info_frame,text="Reason:",font=(20,20))
+reason_label.grid(row=1, column=2, padx=(10,5), pady=10, sticky='e')
+reason_input=ttk.Entry(controller_info_frame,width=60)
+reason_input.grid(row=1, column=3, padx=5, pady=10, sticky='w')
+
+my_info_explain_label=ttk.Label(controller_info_frame,text="(This information will be displayed at the other computer)",font=(12,12),style='Grey.TLabel',anchor='center')
+my_info_explain_label.grid(row=2, column=0, padx=5, pady=(2,10), columnspan=4, sticky='n')
+
+#create widgets for quality frame
+quality_frame.columnconfigure(0, weight=5)
+quality_frame.columnconfigure(1, weight=1)
+quality_frame.columnconfigure(2, weight=5)
+
+quality_heading_label=ttk.Label(quality_frame,text="Quality",font=(15,15),style='Grey.TLabel',justify='center')
+quality_heading_label.grid(row=0, column=0, padx=5, pady=10,columnspan=3,sticky='n')
+
+twenty_label=ttk.Label(quality_frame,text="  20",font=(20,20))
+twenty_label.grid(row=1, column=0, padx=0, pady=10,sticky='e')
+
+scale_value=tk.StringVar()
+scale = ttk.Scale(quality_frame, from_=20, to=100, orient=tk.HORIZONTAL, length=200,command=update_scale_value)
+scale.set(60) # Set the default value
+scale.grid(row=1, column=1, padx=0, pady=10)
+
+one_hundred_label=ttk.Label(quality_frame,text="100",font=(20,20))
+one_hundred_label.grid(row=1, column=2, padx=0, pady=10,sticky='w')
+
+scale_value_label=ttk.Label(quality_frame,textvariable=scale_value,font=(20,20),relief="solid",padding=5)
+scale_value_label.grid(row=2, column=0, padx=10, pady=10,columnspan=3,sticky='s')
+
+quality_explain_label=ttk.Label(quality_frame,text="  (Higher quality means lower fps (frames per second))",font=(12,12),style='Grey.TLabel',justify='center')
+quality_explain_label.grid(row=3, column=0, padx=5, pady=(2,10),columnspan=3,sticky='s')
+
+#create widgets for button frame
+control_button = ttk.Button(request_frame, text="Send Controll Request",width=25,image=run_img,compound="right",takefocus=False)
+control_button.grid(row=0, column=0, padx=5, pady=5)
+control_button.config(command=control_request)
+
+request_result_label=ttk.Label(request_frame,text="",font=(15,15),justify='center')
+request_result_label.grid(row=1, column=0, padx=5, pady=15)
 
 #create widgets for attack detection window
 attack_detecter=attacks_detection.network_attack_detector()
@@ -817,7 +978,6 @@ changing_recommendation_label.pack(padx=5,pady=5)
 tests_frame.place(relx=0.5,rely=0.45,anchor=tk.CENTER)
 
 #create widgets for the generate frame
-
 generate_heading_label=ttk.Label(generate_frame,text="Strong Password Generation",font=('times new roman',20),anchor=tk.CENTER)
 generate_heading_label.configure(font=underline_font)
 generate_heading_label.grid(row=0,columnspan=3,padx=8,pady=(5,30))

@@ -108,7 +108,7 @@ class RemoteController:
         while self.running:
             a=time.time()
             try:
-                recieved=self.screen_client.recieve(500_000,isBytes=True)
+                recieved=self.screen_client.recieve(1_000_000,isBytes=True)
             except:
                 keyboard.unhook_all()
                 self.mouse_listener.stop()
