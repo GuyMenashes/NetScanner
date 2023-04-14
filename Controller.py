@@ -8,14 +8,18 @@ from encrypted_client import encrypted_client
 import time
 import win32api
 import keyboard
-import datetime
 
 class RemoteController:
     def __init__(self,ip):
         self.ip=ip
 
         self.running=True
-        
+
+        self.exit_reason=''
+    
+    def start_connection(self,pipe):
+        self.pipe=pipe
+
         self.mouse_control()
 
         self.keyboard_control()
@@ -34,6 +38,7 @@ class RemoteController:
         try:
             self.keyboard_client.send(f'{key_event.scan_code},{key_event.event_type}')
         except:
+            self.exit_reason='controlled computer disconnected'
             self.running=False 
             print('controlled computer disconnected')
             self.mouse_listener.stop()
@@ -73,6 +78,7 @@ class RemoteController:
             except:
                 keyboard.unhook_all()
                 self.running=False 
+                self.exit_reason='controlled computer disconnected'
                 print('controlled computer disconnected')
                 quit()
         
@@ -83,6 +89,7 @@ class RemoteController:
             except:
                 keyboard.unhook_all()
                 self.running=False 
+                self.exit_reason='controlled computer disconnected'
                 print('controlled computer disconnected')
                 quit()
 
@@ -95,6 +102,7 @@ class RemoteController:
         except:
             keyboard.unhook_all()
             self.running=False 
+            self.exit_reason='controlled computer disconnected'
             print('controlled computer disconnected')
             quit()
 
@@ -113,7 +121,7 @@ class RemoteController:
                 keyboard.unhook_all()
                 self.mouse_listener.stop()
                 self.running=False
-                print('controlled computer disconnected')
+                self.exit_reason='controlled computer disconnected'
                 break
             if not recieved or recieved==b'':
                 lost_count+=1
@@ -133,7 +141,12 @@ class RemoteController:
             cv2.imshow("img", img)
             # Press Esc key to exit
             if cv2.waitKey(1) == 27:
+                self.exit_reason='quited'
                 break
         
+        if self.exit_reason=='':
+            self.exit_reason='controlled computer disconnected'
+
         cv2.destroyAllWindows()
         print(count,sum,f'{1/(sum/count)} fps',lost_count)
+        self.pipe.send(self.exit_reason)

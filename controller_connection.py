@@ -2,10 +2,11 @@ from encrypted_client import encrypted_client
 from Controller import RemoteController
 import time
 
-ip='192.168.1.107'
+ip='192.168.68.121'
 client=encrypted_client(ip,11123)
 try:
     client.run_server()
+    client.send('guy, fehbidosk')
 except:
     print('couldnt connect')
     quit()

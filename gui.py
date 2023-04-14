@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 import tkinter.font as tkFont
 from network_scanner import network_scanner
-import threading
+import threading,multiprocessing
 import get_net_info
 import Device
 from PIL import Image,ImageTk
@@ -495,24 +495,36 @@ def control_request():
     
     t=threading.Thread(target=send_request,args=(ip,name,reason))
     t.start()
-    
+
 def send_request(ip,name,reason):
     client=encrypted_client(ip,11123)
     try:
         client.run_server()
     except:
-        request_result_label.config(text="could not initiate connection")
+        request_result_label.config(text="could not initiate connection",style='Red.TLabel')
         control_button.config(state=tk.NORMAL)
         return
-    client.send(f'{name},{reason}')
+    client.send(f'{name},{reason},{scale_value.get()}')
+    request_result_label.config(text="sent_request...",style='Grey.TLabel')
     respense=client.recieve()
     if respense=='approved':
-        request_result_label.config(text="connecting...")
+        request_result_label.config(text="connecting...",style='Grey.TLabel')
         time.sleep(2) 
-        RemoteController(ip)
+        rc=RemoteController(ip)
+        this_pipe,other_pipe=multiprocessing.Pipe()
+        p=multiprocessing.Process(target=rc.start_connection,args=(other_pipe,))
+        p.start()
+        exit_reason=this_pipe.recv()
+        if exit_reason=='controlled computer disconnected':
+            request_result_label.config(text="controlled computer stopped control or expirienced a problem/shut down!",style='Red.TLabel')
+        else:
+            request_result_label.config(text="")
+            
+        root.state('zoomed')
         control_button.config(state=tk.NORMAL)
+
     else:
-        request_result_label.config(text="connection denied!")
+        request_result_label.config(text="connection denied!",style='Red.TLabel')
         control_button.config(state=tk.NORMAL)
 try:
     my_ip = get_net_info.get_ip_info()[0]
@@ -521,549 +533,552 @@ except:
     messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
     quit()
 
-net_scanner = network_scanner()
-scanning = False
-scanning_thr=threading.Thread()
-
-root = tk.Tk()
-root.state('zoomed')
-root.title("Network Manager")
-
-# create menu bar
-menu_bar = tk.Menu(root)
-file_menu = tk.Menu(menu_bar, tearoff=0)
-file_menu.add_command(label="Exit", command=root.quit)
-menu_bar.add_cascade(label="File", menu=file_menu)
-
-settings_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Settings", menu=settings_menu)
-
-help_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Help", menu=help_menu)
-
-root.config(menu=menu_bar)
-font_family = "Courier New"
-font_size = 14
-
-# create styles
-ttk.Style().configure("Treeview", font=(font_family, font_size), rowheight=36)
-ttk.Style().configure("TButton", font=(font_family, font_size),padding=5)
-ttk.Style().configure("TEntry", font=(font_family, font_size),padding=5,height=3)
-ttk.Style().configure("TRadiobutton", font=(font_family, font_size))
-ttk.Style().configure("TCheckbutton", font=(font_family, font_size))
-ttk.Style().configure("TCombobox", font=(font_family, font_size),height=100)
-ttk.Style().configure("Red.TLabel",foreground="red")
-ttk.Style().configure("Grey.TLabel",foreground="grey25")
-ttk.Style().configure("Orange.TLabel",foreground="DarkOrange3")
-ttk.Style().configure("Yellow.TLabel",foreground="goldenrod1")
-
-#load all images
-device_img = Image.open("device.png")
-device_img = device_img.resize((20, 20))  # Resize image
-device_img = ImageTk.PhotoImage(device_img)
+if __name__=='__main__':
+    multiprocessing.freeze_support()
+
+    net_scanner = network_scanner()
+    scanning = False
+    scanning_thr=threading.Thread()
+
+    root = tk.Tk()
+    root.state('zoomed')
+    root.title("Network Manager")
+
+    # create menu bar
+    menu_bar = tk.Menu(root)
+    file_menu = tk.Menu(menu_bar, tearoff=0)
+    file_menu.add_command(label="Exit", command=root.quit)
+    menu_bar.add_cascade(label="File", menu=file_menu)
+
+    settings_menu = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label="Settings", menu=settings_menu)
+
+    help_menu = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label="Help", menu=help_menu)
+
+    root.config(menu=menu_bar)
+    font_family = "Courier New"
+    font_size = 14
+
+    # create styles
+    ttk.Style().configure("Treeview", font=(font_family, font_size), rowheight=36)
+    ttk.Style().configure("TButton", font=(font_family, font_size),padding=5)
+    ttk.Style().configure("TEntry", font=(font_family, font_size),padding=5,height=3)
+    ttk.Style().configure("TRadiobutton", font=(font_family, font_size))
+    ttk.Style().configure("TCheckbutton", font=(font_family, font_size))
+    ttk.Style().configure("TCombobox", font=(font_family, font_size),height=100)
+    ttk.Style().configure("Red.TLabel",foreground="red")
+    ttk.Style().configure("Grey.TLabel",foreground="grey25")
+    ttk.Style().configure("Orange.TLabel",foreground="DarkOrange3")
+    ttk.Style().configure("Yellow.TLabel",foreground="goldenrod1")
+
+    #load all images
+    device_img = Image.open("device.png")
+    device_img = device_img.resize((20, 20))  # Resize image
+    device_img = ImageTk.PhotoImage(device_img)
 
-dead_device_img = Image.open("dead_device.png")
-dead_device_img = dead_device_img.resize((20, 20))  # Resize image
-dead_device_img = ImageTk.PhotoImage(dead_device_img)
+    dead_device_img = Image.open("dead_device.png")
+    dead_device_img = dead_device_img.resize((20, 20))  # Resize image
+    dead_device_img = ImageTk.PhotoImage(dead_device_img)
 
-router_img = Image.open("router.png")
-router_img = router_img.resize((20, 20))  # Resize image
-router_img = ImageTk.PhotoImage(router_img)
+    router_img = Image.open("router.png")
+    router_img = router_img.resize((20, 20))  # Resize image
+    router_img = ImageTk.PhotoImage(router_img)
 
-me_img = Image.open("me.png")
-me_img = me_img.resize((20, 20))  # Resize image
-me_img = ImageTk.PhotoImage(me_img)
-
-run_img = Image.open("run.png")
-run_img = run_img.resize((20, 20))  # Resize image
-run_img = ImageTk.PhotoImage(run_img)
-
-stop_img = Image.open("stop.png")
-stop_img = stop_img.resize((20, 20))  # Resize image
-stop_img = ImageTk.PhotoImage(stop_img)
-
-ps_load_img= Image.open("port_scan_load.png")
-ps_load_img = ps_load_img.resize((20, 20))  # Resize image
-ps_load_img = ImageTk.PhotoImage(ps_load_img)
-
-passed_img= Image.open("passed.png")
-passed_img = passed_img.resize((20, 20))  # Resize image
-passed_img = ImageTk.PhotoImage(passed_img)
-
-failed_img= Image.open("x.png")
-failed_img = failed_img.resize((20, 20))  # Resize image
-failed_img = ImageTk.PhotoImage(failed_img)
-
-question_img= Image.open("question_mark.png")
-question_img = question_img.resize((20, 20))  # Resize image
-question_img = ImageTk.PhotoImage(question_img)
-
-upload_img=Image.open("upload.png")
-upload_img=upload_img.resize((300,350))
-upload_img = ImageTk.PhotoImage(upload_img)
-
-ping_img=Image.open("ping.png")
-ping_img=ping_img.resize((300,350))
-ping_img = ImageTk.PhotoImage(ping_img)
-
-bandwidth_img=Image.open("bandwidth.png")
-bandwidth_img=bandwidth_img.resize((300,350))
-bandwidth_img = ImageTk.PhotoImage(bandwidth_img)
-
-latency_img=Image.open("latency.png")
-latency_img=latency_img.resize((300,350))
-latency_img = ImageTk.PhotoImage(latency_img)
-
-download_img=Image.open("download.png")
-download_img = ImageTk.PhotoImage(download_img)
-
-escape_img=Image.open("escape.png")
-escape_img=escape_img.resize((35,35))
-escape_img = ImageTk.PhotoImage(escape_img)
-
-#create action bar and add all window frames
-ttk.Style().configure('Custom.TNotebook', tabmargins=[2, 5, 2, 0])
-ttk.Style().configure('Custom.TNotebook.Tab', foreground='black', padding=[10, 5])
+    me_img = Image.open("me.png")
+    me_img = me_img.resize((20, 20))  # Resize image
+    me_img = ImageTk.PhotoImage(me_img)
+
+    run_img = Image.open("run.png")
+    run_img = run_img.resize((20, 20))  # Resize image
+    run_img = ImageTk.PhotoImage(run_img)
+
+    stop_img = Image.open("stop.png")
+    stop_img = stop_img.resize((20, 20))  # Resize image
+    stop_img = ImageTk.PhotoImage(stop_img)
+
+    ps_load_img= Image.open("port_scan_load.png")
+    ps_load_img = ps_load_img.resize((20, 20))  # Resize image
+    ps_load_img = ImageTk.PhotoImage(ps_load_img)
+
+    passed_img= Image.open("passed.png")
+    passed_img = passed_img.resize((20, 20))  # Resize image
+    passed_img = ImageTk.PhotoImage(passed_img)
+
+    failed_img= Image.open("x.png")
+    failed_img = failed_img.resize((20, 20))  # Resize image
+    failed_img = ImageTk.PhotoImage(failed_img)
+
+    question_img= Image.open("question_mark.png")
+    question_img = question_img.resize((20, 20))  # Resize image
+    question_img = ImageTk.PhotoImage(question_img)
+
+    upload_img=Image.open("upload.png")
+    upload_img=upload_img.resize((300,350))
+    upload_img = ImageTk.PhotoImage(upload_img)
+
+    ping_img=Image.open("ping.png")
+    ping_img=ping_img.resize((300,350))
+    ping_img = ImageTk.PhotoImage(ping_img)
+
+    bandwidth_img=Image.open("bandwidth.png")
+    bandwidth_img=bandwidth_img.resize((300,350))
+    bandwidth_img = ImageTk.PhotoImage(bandwidth_img)
+
+    latency_img=Image.open("latency.png")
+    latency_img=latency_img.resize((300,350))
+    latency_img = ImageTk.PhotoImage(latency_img)
+
+    download_img=Image.open("download.png")
+    download_img = ImageTk.PhotoImage(download_img)
+
+    escape_img=Image.open("escape.png")
+    escape_img=escape_img.resize((35,35))
+    escape_img = ImageTk.PhotoImage(escape_img)
 
-action_bar = ttk.Notebook(root,style="Custom.TNotebook",takefocus=False)
-action_bar.pack(fill='x')
+    #create action bar and add all window frames
+    ttk.Style().configure('Custom.TNotebook', tabmargins=[2, 5, 2, 0])
+    ttk.Style().configure('Custom.TNotebook.Tab', foreground='black', padding=[10, 5])
 
-network_scanner_frame=ttk.Frame(action_bar)
-action_bar.add(network_scanner_frame,text="Network Scanner")
-
-password_testing_frame=ttk.Frame(action_bar)
-action_bar.add(password_testing_frame,text="Password Tester")
+    action_bar = ttk.Notebook(root,style="Custom.TNotebook",takefocus=False)
+    action_bar.pack(fill='x')
 
-ttk.Style().configure('Custom.TFrame', background='gray35')
-network_testing_frame=ttk.Frame(action_bar,style='Custom.TFrame')
-action_bar.add(network_testing_frame,text="Netwotk Tester")
+    network_scanner_frame=ttk.Frame(action_bar)
+    action_bar.add(network_scanner_frame,text="Network Scanner")
 
-attack_detection_frame=ttk.Frame(action_bar)
-action_bar.add(attack_detection_frame,text="Attack Detector")
+    password_testing_frame=ttk.Frame(action_bar)
+    action_bar.add(password_testing_frame,text="Password Tester")
 
-sniff_share_frame=ttk.Frame(action_bar)
-action_bar.add(sniff_share_frame,text="Sniff Share")
-
-remote_control_frame=ttk.Frame(action_bar)
-action_bar.add(remote_control_frame,text="Remote Control")
-
-#create frames for remote control
-escape_frame=ttk.Frame(remote_control_frame)
-escape_frame.pack(padx=5,pady=10)
-
-controlled_info_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
-controlled_info_frame.pack(padx=5, pady=0,fill=tk.X,anchor=tk.CENTER)
-
-controller_info_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
-controller_info_frame.pack(padx=5, pady=0,fill=tk.X)
-
-quality_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
-quality_frame.pack(padx=5, pady=0,fill=tk.X)
-
-request_frame=ttk.Frame(remote_control_frame)
-request_frame.pack(padx=5, pady=10)
-
-#create widgets for escape frame
-escape_label = ttk.Label(escape_frame,text="Press escape at any time to exit control! ",font=(25,25) ,image=escape_img,compound='right',style='Red.TLabel')
-escape_label.pack()
-
-#create widgets for controlled info frame
-controlled_info_heading_label=ttk.Label(controlled_info_frame,text="Controlled Computer Information",font=(15,15),style='Grey.TLabel',justify='center')
-controlled_info_heading_label.grid(row=0, column=0, padx=5, pady=10,columnspan=2, sticky='n')
-controlled_ip_label=ttk.Label(controlled_info_frame,text="Ip:",font=(20,20))
-controlled_ip_label.grid(row=1, column=0, padx=5, pady=10, sticky='e')
-controlled_ip_input=ttk.Entry(controlled_info_frame,width=35)
-controlled_ip_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
-controlled_info_frame.grid_columnconfigure(0, weight=1)
-controlled_info_frame.grid_columnconfigure(1, weight=1)
-
-#create widgets for controller info frame
-# add columnconfigure to make all columns the same weight
-controller_info_frame.columnconfigure(0, weight=26)
-controller_info_frame.columnconfigure(1, weight=1)
-controller_info_frame.columnconfigure(2, weight=1)
-controller_info_frame.columnconfigure(3, weight=20)
-
-# create widgets for controller info frame
-controller_info_heading_label=ttk.Label(controller_info_frame,text="My Information",font=(15,15),style='Grey.TLabel',justify='center')
-controller_info_heading_label.grid(row=0, column=0, padx=5, pady=10, columnspan=4, sticky='n')
-
-controller_name_label=ttk.Label(controller_info_frame,text="Name:",font=(20,20))
-controller_name_label.grid(row=1, column=0, padx=5, pady=10, sticky='e')
-controller_name_input=ttk.Entry(controller_info_frame,width=35)
-controller_name_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
-
-reason_label=ttk.Label(controller_info_frame,text="Reason:",font=(20,20))
-reason_label.grid(row=1, column=2, padx=(10,5), pady=10, sticky='e')
-reason_input=ttk.Entry(controller_info_frame,width=60)
-reason_input.grid(row=1, column=3, padx=5, pady=10, sticky='w')
-
-my_info_explain_label=ttk.Label(controller_info_frame,text="(This information will be displayed at the other computer)",font=(12,12),style='Grey.TLabel',anchor='center')
-my_info_explain_label.grid(row=2, column=0, padx=5, pady=(2,10), columnspan=4, sticky='n')
-
-#create widgets for quality frame
-quality_frame.columnconfigure(0, weight=5)
-quality_frame.columnconfigure(1, weight=1)
-quality_frame.columnconfigure(2, weight=5)
-
-quality_heading_label=ttk.Label(quality_frame,text="Quality",font=(15,15),style='Grey.TLabel',justify='center')
-quality_heading_label.grid(row=0, column=0, padx=5, pady=10,columnspan=3,sticky='n')
-
-twenty_label=ttk.Label(quality_frame,text="  20",font=(20,20))
-twenty_label.grid(row=1, column=0, padx=0, pady=10,sticky='e')
-
-scale_value=tk.StringVar()
-scale = ttk.Scale(quality_frame, from_=20, to=100, orient=tk.HORIZONTAL, length=200,command=update_scale_value)
-scale.set(60) # Set the default value
-scale.grid(row=1, column=1, padx=0, pady=10)
-
-one_hundred_label=ttk.Label(quality_frame,text="100",font=(20,20))
-one_hundred_label.grid(row=1, column=2, padx=0, pady=10,sticky='w')
-
-scale_value_label=ttk.Label(quality_frame,textvariable=scale_value,font=(20,20),relief="solid",padding=5)
-scale_value_label.grid(row=2, column=0, padx=10, pady=10,columnspan=3,sticky='s')
-
-quality_explain_label=ttk.Label(quality_frame,text="  (Higher quality means lower fps (frames per second))",font=(12,12),style='Grey.TLabel',justify='center')
-quality_explain_label.grid(row=3, column=0, padx=5, pady=(2,10),columnspan=3,sticky='s')
-
-#create widgets for button frame
-control_button = ttk.Button(request_frame, text="Send Controll Request",width=25,image=run_img,compound="right",takefocus=False)
-control_button.grid(row=0, column=0, padx=5, pady=5)
-control_button.config(command=control_request)
-
-request_result_label=ttk.Label(request_frame,text="",font=(15,15),justify='center')
-request_result_label.grid(row=1, column=0, padx=5, pady=15)
-
-#create widgets for attack detection window
-attack_detecter=attacks_detection.network_attack_detector()
-attack_detecter.start_sniffers()
-
-arp_headline=ttk.Label(attack_detection_frame,text="Arp Spoffing:",font=('Arial',20))
-arp_headline.grid(row=0, column=0, padx=5, pady=5)
-arp_log=tk.Text(attack_detection_frame,width=34,height=38)
-arp_log.grid(row=1, column=0, padx=5, pady=5)
-arp_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
-arp_scrollbar.grid(row=1, column=1, padx=0, pady=5,sticky='ns')
-arp_log.config(yscrollcommand=arp_scrollbar.set)
-arp_scrollbar.config(command=arp_log.yview)
-exp_text="ARP spoofing consists of sending falsified arp messages in order to link the attacker's MAC address with the IP address of another device (usually the router). This allows the attacker to intercept and manipulate network traffic."
-line_width = 59
-lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
-arp_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
-arp_explanation_label.grid(row=2, column=0,columnspan=2, padx=5, pady=5)
-
-dos_headline=ttk.Label(attack_detection_frame,text="Dos Attack:",font=('Arial',20))
-dos_headline.grid(row=0, column=2, padx=5, pady=5)
-dos_log=tk.Text(attack_detection_frame,width=34,height=38)
-dos_log.grid(row=1, column=2, padx=5, pady=5)
-dos_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
-dos_scrollbar.grid(row=1, column=3, padx=0, pady=5,sticky='ns')
-dos_log.config(yscrollcommand=dos_scrollbar.set)
-dos_scrollbar.config(command=dos_log.yview)
-line_width = 59
-exp_text="A Denial-of-Service attack (DOS) aims to disrupt the availability of a network, website, or other online service by overwhelming it with traffic or other requests, usually using TCP, UPD or ICMP packets"
-lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
-dos_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
-dos_explanation_label.grid(row=2, column=2,columnspan=2, padx=5, pady=5)
-
-brodcast_headline=ttk.Label(attack_detection_frame,text="Brodcast Storm:",font=('Arial',20))
-brodcast_headline.grid(row=0, column=4, padx=5, pady=5)
-brodcast_log=tk.Text(attack_detection_frame,width=34,height=38)
-brodcast_log.grid(row=1, column=4, padx=5, pady=5)
-brodcast_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
-brodcast_scrollbar.grid(row=1, column=5, padx=0, pady=5,sticky='ns')
-brodcast_log.config(yscrollcommand=brodcast_scrollbar.set)
-brodcast_scrollbar.config(command=brodcast_log.yview)
-exp_text="A broadcast storm is when a broadcast or multicast packet is continuously transmitted and retransmitted by every device on a network, creating a loop of excessive traffic that can significantly slow down or even crash the network."
-line_width = 59
-lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
-brodcast_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
-brodcast_explanation_label.grid(row=2, column=4,columnspan=2, padx=5, pady=5)
-
-ps_headline=ttk.Label(attack_detection_frame,text="Port Scanning:",font=('Arial',20))
-ps_headline.grid(row=0, column=6, padx=5, pady=5)
-ps_log=tk.Text(attack_detection_frame,width=34,height=38)
-ps_log.grid(row=1, column=6, padx=5, pady=5)
-ps_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
-ps_scrollbar.grid(row=1, column=7, padx=0, pady=5,sticky='ns')
-ps_log.config(yscrollcommand=ps_scrollbar.set)
-ps_scrollbar.config(command=ps_log.yview)
-exp_text="Port scanning is used to discover which network ports are open on a target computer or device. Hackers may use port scanning to identify open ports that could be used as entry points for a cyber attack."
-line_width = 59
-lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
-ps_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
-ps_explanation_label.grid(row=2, column=6,columnspan=2, padx=5, pady=5)
-
-malware_headline=ttk.Label(attack_detection_frame,text="Malware Signatures:",font=('Arial',20))
-malware_headline.grid(row=0, column=8, padx=5, pady=5)
-malware_log=tk.Text(attack_detection_frame,width=34,height=38)
-malware_log.grid(row=1, column=8, padx=5, pady=5)
-malware_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
-malware_scrollbar.grid(row=1, column=9, padx=0, pady=5,sticky='ns')
-malware_log.config(yscrollcommand=malware_scrollbar.set)
-malware_scrollbar.config(command=malware_log.yview)
-exp_text="Malware signatures are unique identifiers that can be used to identify a particular piece of malware, based on its code or behavior. This searches for malware on network packets."
-line_width = 58
-lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
-malware_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=48,font=('Arial',8),borderwidth=5,relief='solid')
-malware_explanation_label.grid(row=2, column=8,columnspan=2, padx=5, pady=5)
-
-update_attack_logs()
-
-#create frames for network tester
-network_tester=traffic_testing.traffic_tester()
-
-left_tests_frame=ttk.Frame(network_testing_frame,style='Custom.TFrame')
-left_tests_frame.pack(side=tk.LEFT,padx=5, pady=5)
-
-middle_tests_frame=ttk.Frame(network_testing_frame,style='Custom.TFrame')
-middle_tests_frame.pack(side=tk.LEFT,padx=5, pady=5)
-
-right_tests_frame=ttk.Frame(network_testing_frame,style='Custom.TFrame')
-right_tests_frame.pack(side=tk.RIGHT,padx=5, pady=5)
-
-#create widgets for left frame
-upload_label = tk.Label(left_tests_frame,text="-",font=(40,40) ,image=upload_img,compound='center',border=0,borderwidth=0)
-upload_label.grid(row=0, column=0, padx=30, pady=6)
-
-ping_label = tk.Label(left_tests_frame,text="-",font=(40,40), image=ping_img,compound='center',border=0,borderwidth=0)
-ping_label.grid(row=1, column=0, padx=30, pady=6)
-
-#create widgets for midlle frame
-download_label=tk.Label(middle_tests_frame,text="-",font=(50,50), image=download_img,compound='center',border=0,borderwidth=0)
-download_label.grid(row=0, column=0, padx=30, pady=40,sticky='n')
-
-run_network_test_button=ttk.Button(middle_tests_frame,text="Run Test",takefocus=False,padding=(100,20),command=start_network_test)
-run_network_test_button.grid(row=1, column=0, padx=30, pady=6)
-
-loading_animation_canvas = tk.Canvas(middle_tests_frame, width=300, height=300,background='gray35',border=0,borderwidth=0,relief='flat', highlightthickness=0, highlightbackground='gray35')
-loading_animation_canvas.grid(row=2, column=0, padx=125, pady=6,sticky='e')
-frames = [ImageTk.PhotoImage(Image.open(f'loading_gif\\frame({i}).gif').resize((100,100)))for i in range(1, 30)]
-
-#create widgets for right frame
-bandwidth_label = tk.Label(right_tests_frame,text="-",font=(40,40), image=bandwidth_img,compound='center',border=0,borderwidth=0)
-bandwidth_label.grid(row=0, column=0, padx=30, pady=6)
-
-latency_label = tk.Label(right_tests_frame,text="-",font=(40,40), image=latency_img,compound='center',border=0,borderwidth=0)
-latency_label.grid(row=1, column=0, padx=30, pady=6)
-
-#create frames for password checker
-password_frame=ttk.Frame(password_testing_frame)
-password_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-
-tests_frame=ttk.Frame(password_testing_frame,borderwidth=6,border=6,relief="groove",padding=5)
-tests_frame.pack(fill=tk.X, padx=5, pady=5)
-
-generate_frame=ttk.Frame(password_testing_frame)
-generate_frame.pack(side=tk.BOTTOM,fill=tk.X, padx=5, pady=5)
-
-# create widgets for the password frame
-pass_tester=password_tester()
-
-your_pass_label=ttk.Label(password_frame,text="Your Password:",font=(15,15))
-your_pass_label.grid(row=0, column=0, padx=8, pady=5)
-
-pass_label=tk.Label(password_frame,text=pass_tester.password,font=(15,15))
-pass_label.grid(row=0, column=1, padx=8, pady=5)
-update_password()
-
-pass_option=tk.BooleanVar(value=False)
-
-ttk.Style().configure('TCheckbutton', font=("arial", 9))
-enter_pass_option=ttk.Checkbutton(password_frame,variable=pass_option,text="Wrong / want to test another one?",padding=(0, 0, 0, 0),takefocus=False)
-enter_pass_option.grid(row=0, column=2, padx=8, pady=5)
-
-pass_option.trace("w", on_pass_option_changed)
-
-password_entry=ttk.Entry(password_frame,width=35,state="disabled")
-password_entry.grid(row=0, column=3, padx=8, pady=5)
-
-no_pass=False
-run_pass_test_button=ttk.Button(password_frame,text="Run Test",width=12,image=run_img,compound="right",takefocus=False,command=run_pass_test,state=tk.DISABLED)
-run_pass_test_button.grid(row=0, column=4, padx=8, pady=5)
-
-password_frame.place(relx=0.5,rely=0.05,anchor=tk.CENTER)
-
-#create widgets for the tests frame
-
-tests_heading_label=ttk.Label(tests_frame,text="Tests:",font=('times new roman',20))
-underline_font = tkFont.Font(tests_heading_label, tests_heading_label.cget("font"))
-underline_font.configure(underline = True)
-tests_heading_label.configure(font=underline_font)
-tests_heading_label.grid(row=0,column=0,padx=5,pady=10,sticky="w")
-
-test1_label=ttk.Label(tests_frame,text="Contains at least 12 characters: ",image=question_img,compound="right",font=(11,11,'bold'))
-important1_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
-test1_label.grid(row=1,column=0,padx=5,pady=8,sticky="w")
-important1_label.grid(row=1,column=1,padx=(0,50),pady=8)
-
-test2_label=ttk.Label(tests_frame,text="Contains at least one lower character: ",image=question_img,compound="right",font=(11,11,'bold'))
-important2_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
-test2_label.grid(row=1,column=2,padx=5,pady=8,sticky="w")
-important2_label.grid(row=1,column=3,padx=5,pady=8)
-
-test3_label=ttk.Label(tests_frame,text="Contains at least one upper character: ",image=question_img,compound="right",font=(11,11,'bold'))
-important3_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
-test3_label.grid(row=2,column=0,padx=5,pady=8,sticky="w")
-important3_label.grid(row=2,column=1,padx=(0,50),pady=8)
-
-test4_label=ttk.Label(tests_frame,text="Contains at least one number: ",image=question_img,compound="right",font=(11,11,'bold'))
-important4_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
-test4_label.grid(row=2,column=2,padx=5,pady=8,sticky="w")
-important4_label.grid(row=2,column=3,padx=5,pady=8)
-
-test5_label=ttk.Label(tests_frame,text="Contains at least one special characters: ",image=question_img,compound="right",font=(11,11,'bold'))
-important5_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
-test5_label.grid(row=3,column=0,padx=5,pady=8,sticky="w")
-important5_label.grid(row=3,column=1,padx=(0,50),pady=8)
-
-test6_label=ttk.Label(tests_frame,text="Doesn't contain any weak substirngs in it (password,123456,qwerty,admin,letmein): ",image=question_img,compound="right",font=(11,11,'bold'))
-important6_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
-test6_label.grid(row=3,column=2,padx=5,pady=8,sticky="w")
-important6_label.grid(row=3,column=3,padx=5,pady=8)
-
-test7_label=ttk.Label(tests_frame,text="Doesnt't contain three or more consecutive identical characters: ",image=question_img,compound="right",font=(11,11,'bold'))
-important7_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
-test7_label.grid(row=4,column=0,padx=5,pady=8,sticky="w")
-important7_label.grid(row=4,column=1,padx=(0,50),pady=8)
-
-test8_label=ttk.Label(tests_frame,text="Doesn't contain any three sequential characters: ",image=question_img,compound="right",font=(11,11,'bold'))
-important8_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
-test8_label.grid(row=4,column=2,padx=5,pady=8,sticky="w")
-important8_label.grid(row=4,column=3,padx=5,pady=8)
-
-test9_label=ttk.Label(tests_frame,text="Doesn't contain any of the keyboard patterns (qwert,asdfg,zxcvb,poiuy,lkjhgf,mnbvc): ",image=question_img,compound="right",font=(11,11,'bold'))
-important9_label=ttk.Label(tests_frame,text="(recommended)",style="Yellow.TLabel",font=(9,9))
-test9_label.grid(row=5,column=0,padx=5,pady=8,sticky="w")
-important9_label.grid(row=5,column=1,padx=(0,50),pady=8)
-
-test10_label=ttk.Label(tests_frame,text="Doesn't contain a date: ",image=question_img,compound="right",font=(11,11,'bold'))
-important10_label=ttk.Label(tests_frame,text="(recommended)",style="Yellow.TLabel",font=(9,9))
-test10_label.grid(row=5,column=2,padx=5,pady=8,sticky="w")
-important10_label.grid(row=5,column=3,padx=5,pady=8)
-
-test11_label=ttk.Label(tests_frame,text="Wasn't found in a weak passwords list: ",image=question_img,compound="right",font=(11,11,'bold'))
-important11_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
-test11_label.grid(row=6,column=0,padx=5,pady=8,sticky="w")
-important11_label.grid(row=6,column=1,padx=(0,50),pady=8)
-
-test12_label=ttk.Label(tests_frame,text="Doesnt contain any dictionary words: ",image=question_img,compound="right",font=(11,11,'bold'))
-important12_label=ttk.Label(tests_frame,text="(recommended)",style="Yellow.TLabel",font=(9,9))
-test12_label.grid(row=6,column=2,padx=5,pady=8,sticky="w")
-important12_label.grid(row=6,column=3,padx=5,pady=8)
-
-test_label_list=[test1_label,test2_label,test3_label,test4_label,test5_label,test6_label,test7_label,test8_label,test9_label,test10_label,test11_label,test12_label]
-
-pass_results_frame=ttk.Frame(tests_frame)
-pass_results_frame.grid(row=7,column=0,columnspan=4,padx=0,pady=(20,5),sticky='ew')
-
-separator = ttk.Separator(pass_results_frame, orient='horizontal')
-separator.pack(fill=tk.X,padx=0,pady=5)
-
-overall_results_label=ttk.Label(pass_results_frame,text="Overall, the password passed - out of 12 tests:",font=(13,13,'bold'))
-overall_results_label.pack(padx=5,pady=5)
-
-critical_results_label=ttk.Label(pass_results_frame,text="-/5 critical tests",style="Red.TLabel",font=(13,13,'bold'))
-critical_results_label.pack(padx=5,pady=5)
-
-important_results_label=ttk.Label(pass_results_frame,text="-/4 important tests",style="Orange.TLabel",font=(13,13,'bold'))
-important_results_label.pack(padx=5,pady=5)
-
-recommended_results_label=ttk.Label(pass_results_frame,text="-/3 recommended tests",style="Yellow.TLabel",font=(13,13,'bold'))
-recommended_results_label.pack(padx=5,pady=5)
-
-changing_recommendation_label=ttk.Label(pass_results_frame,text="   ",font=(13,13,'bold'))
-changing_recommendation_label.pack(padx=5,pady=5)
-
-tests_frame.place(relx=0.5,rely=0.45,anchor=tk.CENTER)
-
-#create widgets for the generate frame
-generate_heading_label=ttk.Label(generate_frame,text="Strong Password Generation",font=('times new roman',20),anchor=tk.CENTER)
-generate_heading_label.configure(font=underline_font)
-generate_heading_label.grid(row=0,columnspan=3,padx=8,pady=(5,30))
-
-generated_password_label=ttk.Label(generate_frame,text=pass_tester.generate_password(),font=(20,20),background="aquamarine")
-generated_password_label.configure(border=10,borderwidth=10, relief="solid")
-generated_password_label.grid(row=1,column=0,padx=8,pady=5)
-
-generete_button=ttk.Button(generate_frame,text="Generate Password",image=run_img,compound="right",takefocus=False,command=generate_password)
-generete_button.grid(row=1,column=1,padx=8,pady=5)
-
-copy_generated_password_button=ttk.Button(generate_frame,text="Copy Password",takefocus=False,command=copy_password)
-copy_generated_password_button.grid(row=1,column=2,padx=8,pady=5)
-
-generate_frame.place(relx=0.5,rely=0.89,anchor=tk.CENTER)
-
-# create frames for network scanner
-scan_frame = ttk.Frame(network_scanner_frame)
-scan_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-
-progress_bar_frame = ttk.Frame(network_scanner_frame)
-progress_bar_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5)
-
-devices_frame = ttk.Frame(network_scanner_frame)
-devices_frame.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
-
-# create widgets for the scan frame
-scan_button = ttk.Button(scan_frame, text="Scan",width=8,image=run_img,compound="right",takefocus=False)
-scan_button.grid(row=0, column=0, padx=5, pady=5)
-scan_button.config(command=start_scan)
-
-stop_button = ttk.Button(scan_frame, text="Stop", command=stop_scan,width=8,image=stop_img,compound="right",takefocus=False)
-stop_button.grid(row=0, column=1, padx=5, pady=5)
-stop_button.config(state=tk.DISABLED)
-
-scan_range_options = ttk.Combobox(scan_frame, values=["Manual", "Full Network"], state="readonly",style="TCombobox",takefocus=False)
-scan_range_options.current(1)
-scan_range_options.grid(row=0, column=2, padx=5, pady=5)
-
-ip_input = ttk.Entry(scan_frame, width=110)
-ip_input.insert(0, "Example: 192.168.1.1-255")
-ip_input.grid(row=0, column=3, padx=5, pady=5)
-ip_input.config(state=tk.DISABLED)
-
-names_button = ttk.Button(scan_frame, text="Resolve Names",command=resolve_all_names,takefocus=False)
-names_button.grid(row=0, column=4, padx=5, pady=5)
-names_button.config(state=tk.DISABLED)
-
-ps_button = ttk.Button(scan_frame, text="Scan Popular Ports",command=port_scan_all_devices,takefocus=False)
-ps_button.grid(row=0, column=5, padx=5, pady=5)
-ps_button.config(state=tk.DISABLED)
-
-# create widgets for devices frame
-headings = ["name", "ip", "mac", "mac vendor", 'Data Transfered With Me']
-selected_table_row = 0
-device_table = ttk.Treeview(devices_frame, columns=headings, height=31)
-device_table.heading("#0", text="status", anchor='center')
-device_table.column("#0", width=50,minwidth=50, stretch=False)
-
-for i,header in enumerate(headings,start=1):   
-    device_table.heading(f'#{i}', text=header, anchor=tk.W)
-    device_table.column(header, width=200, minwidth=150, stretch=True)
-
-device_table.bind("<ButtonRelease-1>", lambda event: get_selected_table_row(event))
-
-device_table.pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5, expand=True)
-
-scrollbar = ttk.Scrollbar(devices_frame, orient="vertical", command=device_table.yview)
-scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-device_table.config(yscrollcommand=scrollbar.set)
-
-ttk.Style().configure('my.Horizontal.TProgressbar', barcolor='#0f0', thickness=1)
-progress_bar = ttk.Progressbar(progress_bar_frame, orient=tk.HORIZONTAL, length=2000, mode='determinate',style='my.Horizontal.TProgressbar')
-progress_bar.pack(padx=5, pady=5)
-
-scan_range_options.bind("<<ComboboxSelected>>", lambda event: toggle_ip_input(scan_range_options, ip_input))
-
-# add widgets to devices frame
-device_table.bind("<ButtonRelease-3>", lambda event: show_popup_menu(event))
-
-# start main loop
-root.mainloop()
-
-attack_detecter.scanning=False
-
-net_scanner.stop_flag=True
-
-net_scanner.close_all_tools()
+    ttk.Style().configure('Custom.TFrame', background='gray35')
+    network_testing_frame=ttk.Frame(action_bar,style='Custom.TFrame')
+    action_bar.add(network_testing_frame,text="Netwotk Tester")
+
+    attack_detection_frame=ttk.Frame(action_bar)
+    action_bar.add(attack_detection_frame,text="Attack Detector")
+
+    sniff_share_frame=ttk.Frame(action_bar)
+    action_bar.add(sniff_share_frame,text="Sniff Share")
+
+    remote_control_frame=ttk.Frame(action_bar)
+    action_bar.add(remote_control_frame,text="Remote Control")
+
+    #create frames for remote control
+    escape_frame=ttk.Frame(remote_control_frame)
+    escape_frame.pack(padx=5,pady=10)
+
+    controlled_info_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
+    controlled_info_frame.pack(padx=5, pady=0,fill=tk.X,anchor=tk.CENTER)
+
+    controller_info_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
+    controller_info_frame.pack(padx=5, pady=0,fill=tk.X)
+
+    quality_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
+    quality_frame.pack(padx=5, pady=0,fill=tk.X)
+
+    request_frame=ttk.Frame(remote_control_frame)
+    request_frame.pack(padx=5, pady=10)
+
+    #create widgets for escape frame
+    escape_label = ttk.Label(escape_frame,text="Press escape at any time to exit control! ",font=(25,25) ,image=escape_img,compound='right',style='Red.TLabel')
+    escape_label.pack()
+
+    #create widgets for controlled info frame
+    controlled_info_heading_label=ttk.Label(controlled_info_frame,text="Controlled Computer Information",font=(15,15),style='Grey.TLabel',justify='center')
+    controlled_info_heading_label.grid(row=0, column=0, padx=5, pady=10,columnspan=2, sticky='n')
+    controlled_ip_label=ttk.Label(controlled_info_frame,text="Ip:",font=(20,20))
+    controlled_ip_label.grid(row=1, column=0, padx=5, pady=10, sticky='e')
+    controlled_ip_input=ttk.Entry(controlled_info_frame,width=35)
+    controlled_ip_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
+    controlled_info_frame.grid_columnconfigure(0, weight=1)
+    controlled_info_frame.grid_columnconfigure(1, weight=1)
+
+    #create widgets for controller info frame
+    # add columnconfigure to make all columns the same weight
+    controller_info_frame.columnconfigure(0, weight=26)
+    controller_info_frame.columnconfigure(1, weight=1)
+    controller_info_frame.columnconfigure(2, weight=1)
+    controller_info_frame.columnconfigure(3, weight=20)
+
+    # create widgets for controller info frame
+    controller_info_heading_label=ttk.Label(controller_info_frame,text="My Information",font=(15,15),style='Grey.TLabel',justify='center')
+    controller_info_heading_label.grid(row=0, column=0, padx=5, pady=10, columnspan=4, sticky='n')
+
+    controller_name_label=ttk.Label(controller_info_frame,text="Name:",font=(20,20))
+    controller_name_label.grid(row=1, column=0, padx=5, pady=10, sticky='e')
+    controller_name_input=ttk.Entry(controller_info_frame,width=35)
+    controller_name_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
+
+    reason_label=ttk.Label(controller_info_frame,text="Reason:",font=(20,20))
+    reason_label.grid(row=1, column=2, padx=(10,5), pady=10, sticky='e')
+    reason_input=ttk.Entry(controller_info_frame,width=60)
+    reason_input.grid(row=1, column=3, padx=5, pady=10, sticky='w')
+
+    my_info_explain_label=ttk.Label(controller_info_frame,text="(This information will be displayed at the other computer)",font=(12,12),style='Grey.TLabel',anchor='center')
+    my_info_explain_label.grid(row=2, column=0, padx=5, pady=(2,10), columnspan=4, sticky='n')
+
+    #create widgets for quality frame
+    quality_frame.columnconfigure(0, weight=5)
+    quality_frame.columnconfigure(1, weight=1)
+    quality_frame.columnconfigure(2, weight=5)
+
+    quality_heading_label=ttk.Label(quality_frame,text="Quality",font=(15,15),style='Grey.TLabel',justify='center')
+    quality_heading_label.grid(row=0, column=0, padx=5, pady=10,columnspan=3,sticky='n')
+
+    twenty_label=ttk.Label(quality_frame,text="  20",font=(20,20))
+    twenty_label.grid(row=1, column=0, padx=0, pady=10,sticky='e')
+
+    scale_value=tk.StringVar()
+    scale = ttk.Scale(quality_frame, from_=20, to=100, orient=tk.HORIZONTAL, length=200,command=update_scale_value)
+    scale.set(60) # Set the default value
+    scale.grid(row=1, column=1, padx=0, pady=10)
+
+    one_hundred_label=ttk.Label(quality_frame,text="100",font=(20,20))
+    one_hundred_label.grid(row=1, column=2, padx=0, pady=10,sticky='w')
+
+    scale_value_label=ttk.Label(quality_frame,textvariable=scale_value,font=(20,20),relief="solid",padding=5)
+    scale_value_label.grid(row=2, column=0, padx=10, pady=10,columnspan=3,sticky='s')
+
+    quality_explain_label=ttk.Label(quality_frame,text="  (Higher quality means lower fps (frames per second))",font=(12,12),style='Grey.TLabel',justify='center')
+    quality_explain_label.grid(row=3, column=0, padx=5, pady=(2,10),columnspan=3,sticky='s')
+
+    #create widgets for button frame
+    control_button = ttk.Button(request_frame, text="Send Controll Request",width=25,image=run_img,compound="right",takefocus=False)
+    control_button.grid(row=0, column=0, padx=5, pady=5)
+    control_button.config(command=control_request)
+
+    request_result_label=ttk.Label(request_frame,text="",font=(15,15),justify='center')
+    request_result_label.grid(row=1, column=0, padx=5, pady=15)
+
+    #create widgets for attack detection window
+    attack_detecter=attacks_detection.network_attack_detector()
+    attack_detecter.start_sniffers()
+
+    arp_headline=ttk.Label(attack_detection_frame,text="Arp Spoffing:",font=('Arial',20))
+    arp_headline.grid(row=0, column=0, padx=5, pady=5)
+    arp_log=tk.Text(attack_detection_frame,width=34,height=38)
+    arp_log.grid(row=1, column=0, padx=5, pady=5)
+    arp_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+    arp_scrollbar.grid(row=1, column=1, padx=0, pady=5,sticky='ns')
+    arp_log.config(yscrollcommand=arp_scrollbar.set)
+    arp_scrollbar.config(command=arp_log.yview)
+    exp_text="ARP spoofing consists of sending falsified arp messages in order to link the attacker's MAC address with the IP address of another device (usually the router). This allows the attacker to intercept and manipulate network traffic."
+    line_width = 59
+    lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+    arp_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+    arp_explanation_label.grid(row=2, column=0,columnspan=2, padx=5, pady=5)
+
+    dos_headline=ttk.Label(attack_detection_frame,text="Dos Attack:",font=('Arial',20))
+    dos_headline.grid(row=0, column=2, padx=5, pady=5)
+    dos_log=tk.Text(attack_detection_frame,width=34,height=38)
+    dos_log.grid(row=1, column=2, padx=5, pady=5)
+    dos_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+    dos_scrollbar.grid(row=1, column=3, padx=0, pady=5,sticky='ns')
+    dos_log.config(yscrollcommand=dos_scrollbar.set)
+    dos_scrollbar.config(command=dos_log.yview)
+    line_width = 59
+    exp_text="A Denial-of-Service attack (DOS) aims to disrupt the availability of a network, website, or other online service by overwhelming it with traffic or other requests, usually using TCP, UPD or ICMP packets"
+    lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+    dos_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+    dos_explanation_label.grid(row=2, column=2,columnspan=2, padx=5, pady=5)
+
+    brodcast_headline=ttk.Label(attack_detection_frame,text="Brodcast Storm:",font=('Arial',20))
+    brodcast_headline.grid(row=0, column=4, padx=5, pady=5)
+    brodcast_log=tk.Text(attack_detection_frame,width=34,height=38)
+    brodcast_log.grid(row=1, column=4, padx=5, pady=5)
+    brodcast_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+    brodcast_scrollbar.grid(row=1, column=5, padx=0, pady=5,sticky='ns')
+    brodcast_log.config(yscrollcommand=brodcast_scrollbar.set)
+    brodcast_scrollbar.config(command=brodcast_log.yview)
+    exp_text="A broadcast storm is when a broadcast or multicast packet is continuously transmitted and retransmitted by every device on a network, creating a loop of excessive traffic that can significantly slow down or even crash the network."
+    line_width = 59
+    lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+    brodcast_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+    brodcast_explanation_label.grid(row=2, column=4,columnspan=2, padx=5, pady=5)
+
+    ps_headline=ttk.Label(attack_detection_frame,text="Port Scanning:",font=('Arial',20))
+    ps_headline.grid(row=0, column=6, padx=5, pady=5)
+    ps_log=tk.Text(attack_detection_frame,width=34,height=38)
+    ps_log.grid(row=1, column=6, padx=5, pady=5)
+    ps_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+    ps_scrollbar.grid(row=1, column=7, padx=0, pady=5,sticky='ns')
+    ps_log.config(yscrollcommand=ps_scrollbar.set)
+    ps_scrollbar.config(command=ps_log.yview)
+    exp_text="Port scanning is used to discover which network ports are open on a target computer or device. Hackers may use port scanning to identify open ports that could be used as entry points for a cyber attack."
+    line_width = 59
+    lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+    ps_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=49,font=('Arial',8),borderwidth=5,relief='solid')
+    ps_explanation_label.grid(row=2, column=6,columnspan=2, padx=5, pady=5)
+
+    malware_headline=ttk.Label(attack_detection_frame,text="Malware Signatures:",font=('Arial',20))
+    malware_headline.grid(row=0, column=8, padx=5, pady=5)
+    malware_log=tk.Text(attack_detection_frame,width=34,height=38)
+    malware_log.grid(row=1, column=8, padx=5, pady=5)
+    malware_scrollbar=tk.Scrollbar(attack_detection_frame,background='red',troughcolor='red', orient='vertical')
+    malware_scrollbar.grid(row=1, column=9, padx=0, pady=5,sticky='ns')
+    malware_log.config(yscrollcommand=malware_scrollbar.set)
+    malware_scrollbar.config(command=malware_log.yview)
+    exp_text="Malware signatures are unique identifiers that can be used to identify a particular piece of malware, based on its code or behavior. This searches for malware on network packets."
+    line_width = 58
+    lined_text ="\n".join(textwrap.wrap(exp_text, width=line_width))
+    malware_explanation_label=ttk.Label(attack_detection_frame,text=lined_text,width=48,font=('Arial',8),borderwidth=5,relief='solid')
+    malware_explanation_label.grid(row=2, column=8,columnspan=2, padx=5, pady=5)
+
+    update_attack_logs()
+
+    #create frames for network tester
+    network_tester=traffic_testing.traffic_tester()
+
+    left_tests_frame=ttk.Frame(network_testing_frame,style='Custom.TFrame')
+    left_tests_frame.pack(side=tk.LEFT,padx=5, pady=5)
+
+    middle_tests_frame=ttk.Frame(network_testing_frame,style='Custom.TFrame')
+    middle_tests_frame.pack(side=tk.LEFT,padx=5, pady=5)
+
+    right_tests_frame=ttk.Frame(network_testing_frame,style='Custom.TFrame')
+    right_tests_frame.pack(side=tk.RIGHT,padx=5, pady=5)
+
+    #create widgets for left frame
+    upload_label = tk.Label(left_tests_frame,text="-",font=(40,40) ,image=upload_img,compound='center',border=0,borderwidth=0)
+    upload_label.grid(row=0, column=0, padx=30, pady=6)
+
+    ping_label = tk.Label(left_tests_frame,text="-",font=(40,40), image=ping_img,compound='center',border=0,borderwidth=0)
+    ping_label.grid(row=1, column=0, padx=30, pady=6)
+
+    #create widgets for midlle frame
+    download_label=tk.Label(middle_tests_frame,text="-",font=(50,50), image=download_img,compound='center',border=0,borderwidth=0)
+    download_label.grid(row=0, column=0, padx=30, pady=40,sticky='n')
+
+    run_network_test_button=ttk.Button(middle_tests_frame,text="Run Test",takefocus=False,padding=(100,20),command=start_network_test)
+    run_network_test_button.grid(row=1, column=0, padx=30, pady=6)
+
+    loading_animation_canvas = tk.Canvas(middle_tests_frame, width=300, height=300,background='gray35',border=0,borderwidth=0,relief='flat', highlightthickness=0, highlightbackground='gray35')
+    loading_animation_canvas.grid(row=2, column=0, padx=125, pady=6,sticky='e')
+    frames = [ImageTk.PhotoImage(Image.open(f'loading_gif\\frame({i}).gif').resize((100,100)))for i in range(1, 30)]
+
+    #create widgets for right frame
+    bandwidth_label = tk.Label(right_tests_frame,text="-",font=(40,40), image=bandwidth_img,compound='center',border=0,borderwidth=0)
+    bandwidth_label.grid(row=0, column=0, padx=30, pady=6)
+
+    latency_label = tk.Label(right_tests_frame,text="-",font=(40,40), image=latency_img,compound='center',border=0,borderwidth=0)
+    latency_label.grid(row=1, column=0, padx=30, pady=6)
+
+    #create frames for password checker
+    password_frame=ttk.Frame(password_testing_frame)
+    password_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
+    tests_frame=ttk.Frame(password_testing_frame,borderwidth=6,border=6,relief="groove",padding=5)
+    tests_frame.pack(fill=tk.X, padx=5, pady=5)
+
+    generate_frame=ttk.Frame(password_testing_frame)
+    generate_frame.pack(side=tk.BOTTOM,fill=tk.X, padx=5, pady=5)
+
+    # create widgets for the password frame
+    pass_tester=password_tester()
+
+    your_pass_label=ttk.Label(password_frame,text="Your Password:",font=(15,15))
+    your_pass_label.grid(row=0, column=0, padx=8, pady=5)
+
+    pass_label=tk.Label(password_frame,text=pass_tester.password,font=(15,15))
+    pass_label.grid(row=0, column=1, padx=8, pady=5)
+    update_password()
+
+    pass_option=tk.BooleanVar(value=False)
+
+    ttk.Style().configure('TCheckbutton', font=("arial", 9))
+    enter_pass_option=ttk.Checkbutton(password_frame,variable=pass_option,text="Wrong / want to test another one?",padding=(0, 0, 0, 0),takefocus=False)
+    enter_pass_option.grid(row=0, column=2, padx=8, pady=5)
+
+    pass_option.trace("w", on_pass_option_changed)
+
+    password_entry=ttk.Entry(password_frame,width=35,state="disabled")
+    password_entry.grid(row=0, column=3, padx=8, pady=5)
+
+    no_pass=False
+    run_pass_test_button=ttk.Button(password_frame,text="Run Test",width=12,image=run_img,compound="right",takefocus=False,command=run_pass_test,state=tk.DISABLED)
+    run_pass_test_button.grid(row=0, column=4, padx=8, pady=5)
+
+    password_frame.place(relx=0.5,rely=0.05,anchor=tk.CENTER)
+
+    #create widgets for the tests frame
+
+    tests_heading_label=ttk.Label(tests_frame,text="Tests:",font=('times new roman',20))
+    underline_font = tkFont.Font(tests_heading_label, tests_heading_label.cget("font"))
+    underline_font.configure(underline = True)
+    tests_heading_label.configure(font=underline_font)
+    tests_heading_label.grid(row=0,column=0,padx=5,pady=10,sticky="w")
+
+    test1_label=ttk.Label(tests_frame,text="Contains at least 12 characters: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important1_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
+    test1_label.grid(row=1,column=0,padx=5,pady=8,sticky="w")
+    important1_label.grid(row=1,column=1,padx=(0,50),pady=8)
+
+    test2_label=ttk.Label(tests_frame,text="Contains at least one lower character: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important2_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
+    test2_label.grid(row=1,column=2,padx=5,pady=8,sticky="w")
+    important2_label.grid(row=1,column=3,padx=5,pady=8)
+
+    test3_label=ttk.Label(tests_frame,text="Contains at least one upper character: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important3_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
+    test3_label.grid(row=2,column=0,padx=5,pady=8,sticky="w")
+    important3_label.grid(row=2,column=1,padx=(0,50),pady=8)
+
+    test4_label=ttk.Label(tests_frame,text="Contains at least one number: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important4_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
+    test4_label.grid(row=2,column=2,padx=5,pady=8,sticky="w")
+    important4_label.grid(row=2,column=3,padx=5,pady=8)
+
+    test5_label=ttk.Label(tests_frame,text="Contains at least one special characters: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important5_label=ttk.Label(tests_frame,text="(critical)",style="Red.TLabel",font=(9,9))
+    test5_label.grid(row=3,column=0,padx=5,pady=8,sticky="w")
+    important5_label.grid(row=3,column=1,padx=(0,50),pady=8)
+
+    test6_label=ttk.Label(tests_frame,text="Doesn't contain any weak substirngs in it (password,123456,qwerty,admin,letmein): ",image=question_img,compound="right",font=(11,11,'bold'))
+    important6_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
+    test6_label.grid(row=3,column=2,padx=5,pady=8,sticky="w")
+    important6_label.grid(row=3,column=3,padx=5,pady=8)
+
+    test7_label=ttk.Label(tests_frame,text="Doesnt't contain three or more consecutive identical characters: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important7_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
+    test7_label.grid(row=4,column=0,padx=5,pady=8,sticky="w")
+    important7_label.grid(row=4,column=1,padx=(0,50),pady=8)
+
+    test8_label=ttk.Label(tests_frame,text="Doesn't contain any three sequential characters: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important8_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
+    test8_label.grid(row=4,column=2,padx=5,pady=8,sticky="w")
+    important8_label.grid(row=4,column=3,padx=5,pady=8)
+
+    test9_label=ttk.Label(tests_frame,text="Doesn't contain any of the keyboard patterns (qwert,asdfg,zxcvb,poiuy,lkjhgf,mnbvc): ",image=question_img,compound="right",font=(11,11,'bold'))
+    important9_label=ttk.Label(tests_frame,text="(recommended)",style="Yellow.TLabel",font=(9,9))
+    test9_label.grid(row=5,column=0,padx=5,pady=8,sticky="w")
+    important9_label.grid(row=5,column=1,padx=(0,50),pady=8)
+
+    test10_label=ttk.Label(tests_frame,text="Doesn't contain a date: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important10_label=ttk.Label(tests_frame,text="(recommended)",style="Yellow.TLabel",font=(9,9))
+    test10_label.grid(row=5,column=2,padx=5,pady=8,sticky="w")
+    important10_label.grid(row=5,column=3,padx=5,pady=8)
+
+    test11_label=ttk.Label(tests_frame,text="Wasn't found in a weak passwords list: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important11_label=ttk.Label(tests_frame,text="(important)",style="Orange.TLabel",font=(9,9))
+    test11_label.grid(row=6,column=0,padx=5,pady=8,sticky="w")
+    important11_label.grid(row=6,column=1,padx=(0,50),pady=8)
+
+    test12_label=ttk.Label(tests_frame,text="Doesnt contain any dictionary words: ",image=question_img,compound="right",font=(11,11,'bold'))
+    important12_label=ttk.Label(tests_frame,text="(recommended)",style="Yellow.TLabel",font=(9,9))
+    test12_label.grid(row=6,column=2,padx=5,pady=8,sticky="w")
+    important12_label.grid(row=6,column=3,padx=5,pady=8)
+
+    test_label_list=[test1_label,test2_label,test3_label,test4_label,test5_label,test6_label,test7_label,test8_label,test9_label,test10_label,test11_label,test12_label]
+
+    pass_results_frame=ttk.Frame(tests_frame)
+    pass_results_frame.grid(row=7,column=0,columnspan=4,padx=0,pady=(20,5),sticky='ew')
+
+    separator = ttk.Separator(pass_results_frame, orient='horizontal')
+    separator.pack(fill=tk.X,padx=0,pady=5)
+
+    overall_results_label=ttk.Label(pass_results_frame,text="Overall, the password passed - out of 12 tests:",font=(13,13,'bold'))
+    overall_results_label.pack(padx=5,pady=5)
+
+    critical_results_label=ttk.Label(pass_results_frame,text="-/5 critical tests",style="Red.TLabel",font=(13,13,'bold'))
+    critical_results_label.pack(padx=5,pady=5)
+
+    important_results_label=ttk.Label(pass_results_frame,text="-/4 important tests",style="Orange.TLabel",font=(13,13,'bold'))
+    important_results_label.pack(padx=5,pady=5)
+
+    recommended_results_label=ttk.Label(pass_results_frame,text="-/3 recommended tests",style="Yellow.TLabel",font=(13,13,'bold'))
+    recommended_results_label.pack(padx=5,pady=5)
+
+    changing_recommendation_label=ttk.Label(pass_results_frame,text="   ",font=(13,13,'bold'))
+    changing_recommendation_label.pack(padx=5,pady=5)
+
+    tests_frame.place(relx=0.5,rely=0.45,anchor=tk.CENTER)
+
+    #create widgets for the generate frame
+    generate_heading_label=ttk.Label(generate_frame,text="Strong Password Generation",font=('times new roman',20),anchor=tk.CENTER)
+    generate_heading_label.configure(font=underline_font)
+    generate_heading_label.grid(row=0,columnspan=3,padx=8,pady=(5,30))
+
+    generated_password_label=ttk.Label(generate_frame,text=pass_tester.generate_password(),font=(20,20),background="aquamarine")
+    generated_password_label.configure(border=10,borderwidth=10, relief="solid")
+    generated_password_label.grid(row=1,column=0,padx=8,pady=5)
+
+    generete_button=ttk.Button(generate_frame,text="Generate Password",image=run_img,compound="right",takefocus=False,command=generate_password)
+    generete_button.grid(row=1,column=1,padx=8,pady=5)
+
+    copy_generated_password_button=ttk.Button(generate_frame,text="Copy Password",takefocus=False,command=copy_password)
+    copy_generated_password_button.grid(row=1,column=2,padx=8,pady=5)
+
+    generate_frame.place(relx=0.5,rely=0.89,anchor=tk.CENTER)
+
+    # create frames for network scanner
+    scan_frame = ttk.Frame(network_scanner_frame)
+    scan_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
+    progress_bar_frame = ttk.Frame(network_scanner_frame)
+    progress_bar_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5)
+
+    devices_frame = ttk.Frame(network_scanner_frame)
+    devices_frame.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
+
+    # create widgets for the scan frame
+    scan_button = ttk.Button(scan_frame, text="Scan",width=8,image=run_img,compound="right",takefocus=False)
+    scan_button.grid(row=0, column=0, padx=5, pady=5)
+    scan_button.config(command=start_scan)
+
+    stop_button = ttk.Button(scan_frame, text="Stop", command=stop_scan,width=8,image=stop_img,compound="right",takefocus=False)
+    stop_button.grid(row=0, column=1, padx=5, pady=5)
+    stop_button.config(state=tk.DISABLED)
+
+    scan_range_options = ttk.Combobox(scan_frame, values=["Manual", "Full Network"], state="readonly",style="TCombobox",takefocus=False)
+    scan_range_options.current(1)
+    scan_range_options.grid(row=0, column=2, padx=5, pady=5)
+
+    ip_input = ttk.Entry(scan_frame, width=110)
+    ip_input.insert(0, "Example: 192.168.1.1-255")
+    ip_input.grid(row=0, column=3, padx=5, pady=5)
+    ip_input.config(state=tk.DISABLED)
+
+    names_button = ttk.Button(scan_frame, text="Resolve Names",command=resolve_all_names,takefocus=False)
+    names_button.grid(row=0, column=4, padx=5, pady=5)
+    names_button.config(state=tk.DISABLED)
+
+    ps_button = ttk.Button(scan_frame, text="Scan Popular Ports",command=port_scan_all_devices,takefocus=False)
+    ps_button.grid(row=0, column=5, padx=5, pady=5)
+    ps_button.config(state=tk.DISABLED)
+
+    # create widgets for devices frame
+    headings = ["name", "ip", "mac", "mac vendor", 'Data Transfered With Me']
+    selected_table_row = 0
+    device_table = ttk.Treeview(devices_frame, columns=headings, height=31)
+    device_table.heading("#0", text="status", anchor='center')
+    device_table.column("#0", width=50,minwidth=50, stretch=False)
+
+    for i,header in enumerate(headings,start=1):   
+        device_table.heading(f'#{i}', text=header, anchor=tk.W)
+        device_table.column(header, width=200, minwidth=150, stretch=True)
+
+    device_table.bind("<ButtonRelease-1>", lambda event: get_selected_table_row(event))
+
+    device_table.pack(side=tk.LEFT, fill=tk.BOTH, padx=5, pady=5, expand=True)
+
+    scrollbar = ttk.Scrollbar(devices_frame, orient="vertical", command=device_table.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    device_table.config(yscrollcommand=scrollbar.set)
+
+    ttk.Style().configure('my.Horizontal.TProgressbar', barcolor='#0f0', thickness=1)
+    progress_bar = ttk.Progressbar(progress_bar_frame, orient=tk.HORIZONTAL, length=2000, mode='determinate',style='my.Horizontal.TProgressbar')
+    progress_bar.pack(padx=5, pady=5)
+
+    scan_range_options.bind("<<ComboboxSelected>>", lambda event: toggle_ip_input(scan_range_options, ip_input))
+
+    # add widgets to devices frame
+    device_table.bind("<ButtonRelease-3>", lambda event: show_popup_menu(event))
+
+    # start main loop
+    root.mainloop()
+
+    attack_detecter.scanning=False
+
+    net_scanner.stop_flag=True
+
+    net_scanner.close_all_tools()
