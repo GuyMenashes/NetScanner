@@ -44,7 +44,7 @@ class password_tester():
                 password=line.split(':')[-1].strip()
         
         if not password:
-            self.password= 'Open network, no password'
+            password= 'Open network, no password'
         
         self.password= password
 

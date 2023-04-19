@@ -9,8 +9,11 @@ from socket import timeout
 import ctypes
 
 class RemoteControlled:
-    def __init__(self):
+    def __init__(self,quality):
         self.running=True
+
+        self.qaulity=quality
+
         mouse_thread=threading.Thread(target=self.mouse_control)
         mouse_thread.start()
         time.sleep(0.05)
@@ -91,7 +94,7 @@ class RemoteControlled:
     def screenshot(self,lock):
         while self.running:
             try:
-                take_screenshot(lock)
+                take_screenshot(lock,self.qaulity)
             except Exception as e:
                 print('screenshot error',e)
                 time.sleep(0.5)

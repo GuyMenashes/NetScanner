@@ -7,6 +7,7 @@ def listen_for_connections():
         server=encrypted_server(11123)
         server.start_server(first_connection=True)
         info=server.recieve().split(',')
+        quality=int(info[2])
         answer=input(f'ip: {server.addr[0]}, name:{info[0]} wants to connect to you for the reason: {info[1]}, do you allow him? y/n ')
         if answer=='y':
             print('approved')
@@ -19,7 +20,7 @@ def listen_for_connections():
             del server
 
     print('connecting')
-    RemoteControlled()
+    RemoteControlled(quality)
 
 if __name__=='__main__':
     listen_for_connections()

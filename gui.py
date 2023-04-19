@@ -374,6 +374,10 @@ def run_pass_test():
         password=password_entry.get()
     else:
         password=pass_tester.password
+    
+    if not password or password=='Finding...':
+        messagebox.showerror("Error",'Error handaling password. check input ot try again!')
+        return
 
     results=pass_tester.is_good_pass(password)
 
@@ -573,66 +577,66 @@ if __name__=='__main__':
     ttk.Style().configure("Yellow.TLabel",foreground="goldenrod1")
 
     #load all images
-    device_img = Image.open("device.png")
+    device_img = Image.open("images/device.png")
     device_img = device_img.resize((20, 20))  # Resize image
     device_img = ImageTk.PhotoImage(device_img)
 
-    dead_device_img = Image.open("dead_device.png")
+    dead_device_img = Image.open("images/dead_device.png")
     dead_device_img = dead_device_img.resize((20, 20))  # Resize image
     dead_device_img = ImageTk.PhotoImage(dead_device_img)
 
-    router_img = Image.open("router.png")
+    router_img = Image.open("images/router.png")
     router_img = router_img.resize((20, 20))  # Resize image
     router_img = ImageTk.PhotoImage(router_img)
 
-    me_img = Image.open("me.png")
+    me_img = Image.open("images/me.png")
     me_img = me_img.resize((20, 20))  # Resize image
     me_img = ImageTk.PhotoImage(me_img)
 
-    run_img = Image.open("run.png")
+    run_img = Image.open("images/run.png")
     run_img = run_img.resize((20, 20))  # Resize image
     run_img = ImageTk.PhotoImage(run_img)
 
-    stop_img = Image.open("stop.png")
+    stop_img = Image.open("images/stop.png")
     stop_img = stop_img.resize((20, 20))  # Resize image
     stop_img = ImageTk.PhotoImage(stop_img)
 
-    ps_load_img= Image.open("port_scan_load.png")
+    ps_load_img= Image.open("images/port_scan_load.png")
     ps_load_img = ps_load_img.resize((20, 20))  # Resize image
     ps_load_img = ImageTk.PhotoImage(ps_load_img)
 
-    passed_img= Image.open("passed.png")
+    passed_img= Image.open("images/passed.png")
     passed_img = passed_img.resize((20, 20))  # Resize image
     passed_img = ImageTk.PhotoImage(passed_img)
 
-    failed_img= Image.open("x.png")
+    failed_img= Image.open("images/x.png")
     failed_img = failed_img.resize((20, 20))  # Resize image
     failed_img = ImageTk.PhotoImage(failed_img)
 
-    question_img= Image.open("question_mark.png")
+    question_img= Image.open("images/question_mark.png")
     question_img = question_img.resize((20, 20))  # Resize image
     question_img = ImageTk.PhotoImage(question_img)
 
-    upload_img=Image.open("upload.png")
+    upload_img=Image.open("images/upload.png")
     upload_img=upload_img.resize((300,350))
     upload_img = ImageTk.PhotoImage(upload_img)
 
-    ping_img=Image.open("ping.png")
+    ping_img=Image.open("images/ping.png")
     ping_img=ping_img.resize((300,350))
     ping_img = ImageTk.PhotoImage(ping_img)
 
-    bandwidth_img=Image.open("bandwidth.png")
+    bandwidth_img=Image.open("images/bandwidth.png")
     bandwidth_img=bandwidth_img.resize((300,350))
     bandwidth_img = ImageTk.PhotoImage(bandwidth_img)
 
-    latency_img=Image.open("latency.png")
+    latency_img=Image.open("images/latency.png")
     latency_img=latency_img.resize((300,350))
     latency_img = ImageTk.PhotoImage(latency_img)
 
-    download_img=Image.open("download.png")
+    download_img=Image.open("images/download.png")
     download_img = ImageTk.PhotoImage(download_img)
 
-    escape_img=Image.open("escape.png")
+    escape_img=Image.open("images/escape.png")
     escape_img=escape_img.resize((35,35))
     escape_img = ImageTk.PhotoImage(escape_img)
 

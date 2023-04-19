@@ -50,12 +50,12 @@ def get_cursor():
 
     return (cursor, hotspot)
 
-def take_screenshot(lock):
+def take_screenshot(lock,quality):
 
     img = ImageGrab.grab(bbox=None, include_layered_windows=True)
 
     with lock:
-        img.save("shot.jpg", 'JPEG', quality=80)
+        img.save("shot.jpg", 'JPEG', quality=quality)
 
 '''
 def take_screenshot(lock):
@@ -75,5 +75,3 @@ def take_screenshot(lock):
 
     ratio = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
 '''
-
-take_screenshot(threading.Lock())

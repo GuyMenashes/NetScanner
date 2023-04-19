@@ -66,7 +66,10 @@ class traffic_tester():
         results=[]
         while len(results)<10:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((target_ip, 80))
+            try:
+                s.connect((target_ip, 80))
+            except:
+                break
             data = b"0" * packet_size
             start = time.time()
             for i in range(packet_count):
@@ -82,7 +85,7 @@ class traffic_tester():
             except ZeroDivisionError:
                 time.sleep(0.1)
                 pass
-        if len(results)==0:
+        if sum(results)==0 or len(results)==0:
             self.bandwidth='error'
         else:
             self.bandwidth=round(sum(results)/len(results),1)

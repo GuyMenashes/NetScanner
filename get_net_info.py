@@ -19,9 +19,12 @@ def get_ip_info()->tuple[str,str,str,list[str]]:
       elif 'IPv4' in line:
           ip = (line.split(':')[-1].strip())[:line.split(':')[-1].strip().find("(")]
       elif 'Default Gateway' in line:
+          if not re.search("[0-9]", line):
+              continue
           if re.search("[a-z]", line):
               line=lines[i+1]
           defult_gateway = line.split(':')[-1].strip()
+          break
 
   network = IPNetwork('/'.join([ip, subnet_mask]))
   generator = network.iter_hosts()
