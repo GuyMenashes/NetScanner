@@ -14,6 +14,10 @@ class RemoteControlled:
 
         self.qaulity=quality
 
+        self.exit_reason=''
+
+    def start_share(self,pipe):
+        self.pipe=pipe
         mouse_thread=threading.Thread(target=self.mouse_control)
         mouse_thread.start()
         time.sleep(0.05)
@@ -50,6 +54,7 @@ class RemoteControlled:
             except timeout:
                 continue
             except:
+                self.exit_reason='controlled computer disconnected'
                 self.running=False
                 break
             if not text:
@@ -82,6 +87,7 @@ class RemoteControlled:
                 continue
             except:
                 self.running=False
+                self.exit_reason='controlled computer disconnected'
                 break
             if not text:
                 continue
@@ -121,6 +127,7 @@ class RemoteControlled:
             try:
                 self.screen_server.send(zlib.compress(image,level=9),isBytes=True)
             except:
+                self.exit_reason='controlled computer disconnected'
                 self.running=False
                 break
             with lock:
@@ -131,3 +138,4 @@ class RemoteControlled:
                 except:
                     print('e')
                     continue
+        self.pipe.send(self.exit_reason)

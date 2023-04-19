@@ -8,9 +8,12 @@ from encrypted_server import encrypted_server
 import time
 from Controlled import RemoteControlled
 import threading
+import multiprocessing
 
 class controlled_gui:
     def __init__(self):
+        self.running=True
+
         try:
             self.my_ip =get_ip_info()[0]
         except:
@@ -57,8 +60,8 @@ class controlled_gui:
         self.buttons_frame=ttk.Frame(self.root,padding=(10,20))
         self.buttons_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.status_frame=ttk.Frame(self.root,padding=(10,20))
-        self.status_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
+        self.status_frame=ttk.Frame(self.root,padding=(10,0))
+        self.status_frame.pack(side=tk.TOP,padx=5,fill=tk.BOTH)
 
         #create widgets for ip frame
         your_ip_label = tk.Label(self.ip_frame,text="Your Ip:",font=(30,30),border=0,borderwidth=0)
@@ -98,11 +101,10 @@ class controlled_gui:
         self.reason_value_label.grid(row=3,column=1,pady=10,sticky='w')
 
         #create widgets for buttons frame
-        self.approve_button = ttk.Button(self.buttons_frame, text="Approve",image=self.approve_img,compound='right',width=30,padding=(10,20),state=tk.DISABLED,command=threading.Thread(target=self.start_connection).start)
+        self.approve_button = ttk.Button(self.buttons_frame, text="Approve",image=self.approve_img,compound='right',width=30,padding=(10,20),state=tk.DISABLED,command=lambda:self.start_thread('a'))
         self.approve_button.grid(row=0,column=0,padx=(42,5))
 
-        self.deny_button = ttk.Button(self.buttons_frame, text="Deny",width=30,padding=(10,20),image=self.deny_img,compound='right',state=tk.DISABLED,command=
-                                      threading.Thread(target=self.deny_connection).start)
+        self.deny_button = ttk.Button(self.buttons_frame, text="Deny",width=30,padding=(10,20),image=self.deny_img,compound='right',state=tk.DISABLED,command=lambda:self.start_thread('d'))
         self.deny_button.grid(row=0,column=1,padx=(30,5))
 
         #create widgets for status frame
@@ -112,7 +114,7 @@ class controlled_gui:
         self.root.mainloop()
 
     def listen_for_connections(self):
-        while True:
+        while self.running:
             try:
                 self.server=encrypted_server(11123)
                 self.server.start_server(first_connection=True)
@@ -121,8 +123,11 @@ class controlled_gui:
                 try:
                     self.server.server_socket.close()
                     self.server.client.close()
+                except:
+                    pass
                 finally:
                     del self.server
+                    return
 
         info=self.server.recieve().split(',')
         self.quality=int(info[2])
@@ -135,12 +140,31 @@ class controlled_gui:
         self.approve_button.config(state=tk.ACTIVE)
         self.deny_button.config(state=tk.ACTIVE)
 
+    def start_thread(self,code):
+        if code=='a':
+            threading.Thread(target=self.start_connection).start()
+        else:
+            threading.Thread(target=self.deny_connection).start()
+
     def start_connection(self):
         self.server.send('approved')
         self.status_label.config(text='connecting...')
-        RemoteControlled(self.quality)
+
+        rc=RemoteControlled(self.quality)
+        this_pipe,other_pipe=multiprocessing.Pipe()
+        p=multiprocessing.Process(target=rc.start_share,args=(other_pipe,))
+        p.start()
+        self.root.iconify()
+        self.root.withdraw()
+        exit_reason=this_pipe.recv()
+        self.root.deiconify()
+        if exit_reason=='controlled computer disconnected':
+            print(1)
+            self.status_label.config(text="other computer stopped control or expirienced a problem/shut down!")
+        else:
+            self.status_label.config(text="")
+
         self.clean_request()
-        self.status_label.config(text='')
         try:
             self.server.server_socket.close()
             self.server.client.close()
@@ -170,5 +194,14 @@ class controlled_gui:
         self.request_ip_value_label.config(text='')
         self.reason_value_label.config(text='')
 
-
-controlled_gui()
+if __name__=='__main__':
+    multiprocessing.freeze_support()
+    cg=controlled_gui()
+    try:
+        cg.server.server_socket.close()
+        cg.server.client.close()
+    except:
+        pass
+    finally:
+        cg.running=False
+    

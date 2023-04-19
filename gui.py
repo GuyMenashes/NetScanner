@@ -486,13 +486,18 @@ def control_request():
         return
     
     name=controller_name_input.get()
+    reason=reason_input.get()
+
+    if re.search(r"[^a-zA-Z]", reason) or re.search(r"[^a-zA-Z]", name):
+        messagebox.showerror("Error", "Name and Reason can only contain letters")
+        return
+
     if len(name)<3 or len(name)>30:
         messagebox.showerror("Error", "Name has to be longer than 3 letters and shorter than 30!")
         return
     
-    reason=reason_input.get()
-    if len(reason)<5 or len(reason)>80:
-        messagebox.showerror("Error", "Reason has to be longer than 5 letters and shorter than 80!")
+    if len(reason)<5 or len(reason)>40:
+        messagebox.showerror("Error", "Reason has to be longer than 5 letters and shorter than 40!")
         return
     
     control_button.config(state=tk.DISABLED)
@@ -508,27 +513,30 @@ def send_request(ip,name,reason):
         request_result_label.config(text="could not initiate connection",style='Red.TLabel')
         control_button.config(state=tk.NORMAL)
         return
-    client.send(f'{name},{reason},{scale_value.get()}')
-    request_result_label.config(text="sent_request...",style='Grey.TLabel')
-    respense=client.recieve()
-    if respense=='approved':
-        request_result_label.config(text="connecting...",style='Grey.TLabel')
-        time.sleep(2) 
-        rc=RemoteController(ip)
-        this_pipe,other_pipe=multiprocessing.Pipe()
-        p=multiprocessing.Process(target=rc.start_connection,args=(other_pipe,))
-        p.start()
-        exit_reason=this_pipe.recv()
-        if exit_reason=='controlled computer disconnected':
-            request_result_label.config(text="controlled computer stopped control or expirienced a problem/shut down!",style='Red.TLabel')
+    try:
+        client.send(f'{name},{reason},{scale_value.get()}')
+        request_result_label.config(text="sent_request...",style='Grey.TLabel')
+        respense=client.recieve()
+        if respense=='approved':
+            request_result_label.config(text="connecting...",style='Grey.TLabel')
+            time.sleep(2) 
+            rc=RemoteController(ip)
+            this_pipe,other_pipe=multiprocessing.Pipe()
+            p=multiprocessing.Process(target=rc.start_connection,args=(other_pipe,))
+            p.start()
+            exit_reason=this_pipe.recv()
+            if exit_reason=='controlled computer disconnected':
+                request_result_label.config(text="controlled computer stopped control or expirienced a problem/shut down!",style='Red.TLabel')
+            else:
+                request_result_label.config(text="")
+                
+            root.state('zoomed')
+            control_button.config(state=tk.NORMAL)
         else:
-            request_result_label.config(text="")
-            
-        root.state('zoomed')
-        control_button.config(state=tk.NORMAL)
-
-    else:
-        request_result_label.config(text="connection denied!",style='Red.TLabel')
+            request_result_label.config(text="connection denied!",style='Red.TLabel')
+            control_button.config(state=tk.NORMAL)
+    except:
+        request_result_label.config(text="request failed!",style='Red.TLabel')
         control_button.config(state=tk.NORMAL)
 try:
     my_ip = get_net_info.get_ip_info()[0]
