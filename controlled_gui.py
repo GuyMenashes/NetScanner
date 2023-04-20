@@ -20,7 +20,7 @@ class controlled_gui:
             messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
             quit()
         self.root = tk.Tk()
-        self.root.geometry('600x600')
+        self.root.geometry('600x675')
         self.root.title("Network Manager")
         self.root.resizable(False,False)
 
@@ -50,7 +50,14 @@ class controlled_gui:
         self.deny_img = self.deny_img.resize((20, 20))  # Resize image
         self.deny_img = ImageTk.PhotoImage(self.deny_img)
 
+        escape_img=Image.open("images/escape.png")
+        escape_img=escape_img.resize((35,35))
+        escape_img = ImageTk.PhotoImage(escape_img)
+
         #create frames
+        self.escape_frame=ttk.Frame(self.root,padding=(5,5))
+        self.escape_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
+
         self.ip_frame=ttk.Frame(self.root,borderwidth=4,relief='solid',padding=(10,20))
         self.ip_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
@@ -62,6 +69,10 @@ class controlled_gui:
 
         self.status_frame=ttk.Frame(self.root,padding=(10,0))
         self.status_frame.pack(side=tk.TOP,padx=5,fill=tk.BOTH)
+
+        #create widgets for escape frame
+        escape_label = ttk.Label(self.escape_frame,text="Press escape at any time to exit share! ",font=(23,23) ,image=escape_img,compound='right',background='tomato2')
+        escape_label.pack()
 
         #create widgets for ip frame
         your_ip_label = tk.Label(self.ip_frame,text="Your Ip:",font=(30,30),border=0,borderwidth=0)
