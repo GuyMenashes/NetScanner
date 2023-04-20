@@ -8,7 +8,6 @@ class SniffReq:
 
     def request_pcap(self):
         try:
-            self.client.send('request')
             length=int(self.client.recieve())
         except:
             return
@@ -24,7 +23,3 @@ class SniffReq:
                 length-=4096
         with open('recieved_pcap.pcap','wb') as f:
             f.write(res)
-
-s=SniffReq('127.0.0.1')
-time.sleep(5)
-s.request_pcap()

@@ -1,25 +1,20 @@
 import threading
 from scapy.all import *
 from encrypted_server import *
+from scapy.all import *
+
 
 class SniffSen:
     def __init__(self):
-        self.server=encrypted_server(45689)
-        self.server.start_server()
-
         self.sniffed_packets=[]
         self.scanning=True
         self.lock=threading.Lock()
-        snif=threading.Thread(target=self.sniffer)
-        snif.start()
-        listener=threading.Thread(target=self.request_listener)
-        listener.start()
-        sender=threading.Thread(target=self.send_pcap)
-        sender.start()
-        sender.join()
-        snif.join()
-        
+        threading.Thread(target=self.sniffer).start()
+
     def send_pcap(self):
+        self.server=encrypted_server(45689)
+        self.server.start_server()
+        
         wrpcap('sent_pcap.pcap',self.sniffed_packets)
 
         with open('sent_pcap.pcap','rb') as f:
@@ -49,18 +44,12 @@ class SniffSen:
         except:
             self.scanning=False
             return  
-    
-    def request_listener(self):
-        while self.scanning:
-            try:
-                recieved=self.server.recieve()
-            except:
-                del self.server
-                time.sleep(0.2)
-                self.server=encrypted_server(45689)
-                self.server.start_server()
-            if recieved:
-                self.send_pcap()
+        
+        try:
+            self.server.server_socket.close()
+            self.server.client.close()
+        finally:
+            del self.server
         
     def sniffer(self):
         sniff(prn=self.save_packet)
@@ -71,5 +60,3 @@ class SniffSen:
         if not self.scanning:
             wrpcap('sent_pcap.pcap',self.sniffed_packets)
             quit()
-
-SniffSen()

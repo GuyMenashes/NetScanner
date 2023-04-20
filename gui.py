@@ -17,6 +17,11 @@ import socket
 from encrypted_client import encrypted_client
 from Controller import RemoteController
 import time
+import os
+from scapy.all import *
+import datetime
+from tkinter import filedialog
+import shutil
 
  # function to update device table
 def update_device_table():
@@ -160,6 +165,18 @@ def show_popup_menu(event):
             popup_menu.add_command(label="Try to resolve name",command=lambda:try_to_resolve_name(row_num),state=tk.DISABLED)
             popup_menu.add_command(label="Scan Popular Ports",command=lambda:popular_port_scan(row_num),state=tk.DISABLED)
             popup_menu.add_command(label="Intense Port Scan",command=lambda:create_port_scan_popup(row_num),state=tk.DISABLED)
+
+        popup_menu.add_separator()
+        cmd_menu=tk.Menu(popup_menu,tearoff=False)
+        popup_menu.add_cascade(label="CMD tools", menu=cmd_menu)
+        # Add items to the expandable group
+        ip=device_table.item(row_id, "values")[1]
+        cmd_menu.add_command(label="ping",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && ping {ip}"')).start())
+        cmd_menu.add_command(label="tracert",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && tracert {ip}"')).start())
+        cmd_menu.add_command(label="arp -a",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && arp -a"')).start())
+        cmd_menu.add_command(label="netstat -a",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && netstat -a"')).start())
+        cmd_menu.add_command(label="ipconfig",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && ipconfig"')).start())
+        cmd_menu.add_command(label="nbtstat",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && nbtstat -a {ip}"')).start())
 
         popup_menu.add_separator()
         popup_menu.add_command(label="Copy IP Address", command=lambda: copy_to_clipboard(device_table.item(row_id, "values")[1]))
@@ -486,9 +503,9 @@ def control_request():
         return
     
     name=controller_name_input.get()
-    reason=reason_input.get()
+    reason=controller_reason_input.get()
 
-    if re.search(r"[^a-zA-Z]", reason) or re.search(r"[^a-zA-Z]", name):
+    if re.search(r"[^a-zA-Z\s]", reason) or re.search(r"[^a-zA-Z\s]", name):
         messagebox.showerror("Error", "Name and Reason can only contain letters")
         return
 
@@ -502,23 +519,23 @@ def control_request():
     
     control_button.config(state=tk.DISABLED)
     
-    t=threading.Thread(target=send_request,args=(ip,name,reason))
+    t=threading.Thread(target=send_rc_request,args=(ip,name,reason))
     t.start()
 
-def send_request(ip,name,reason):
+def send_rc_request(ip,name,reason):
     client=encrypted_client(ip,11123)
     try:
         client.run_server()
     except:
-        request_result_label.config(text="could not initiate connection",style='Red.TLabel')
+        rc_request_result_label.config(text="could not initiate connection",style='Red.TLabel')
         control_button.config(state=tk.NORMAL)
         return
     try:
         client.send(f'{name},{reason},{scale_value.get()}')
-        request_result_label.config(text="sent_request...",style='Grey.TLabel')
-        respense=client.recieve()
-        if respense=='approved':
-            request_result_label.config(text="connecting...",style='Grey.TLabel')
+        rc_request_result_label.config(text="sent request...",style='Grey.TLabel')
+        response=client.recieve()
+        if response=='approved':
+            rc_request_result_label.config(text="connecting...",style='Grey.TLabel')
             time.sleep(2) 
             rc=RemoteController(ip)
             this_pipe,other_pipe=multiprocessing.Pipe()
@@ -526,26 +543,173 @@ def send_request(ip,name,reason):
             p.start()
             exit_reason=this_pipe.recv()
             if exit_reason=='controlled computer disconnected':
-                request_result_label.config(text="controlled computer stopped control or expirienced a problem/shut down!",style='Red.TLabel')
+                rc_request_result_label.config(text="controlled computer stopped control or expirienced a problem/shut down!",style='Red.TLabel')
             else:
-                request_result_label.config(text="")
+                rc_request_result_label.config(text="")
                 
             root.state('zoomed')
             control_button.config(state=tk.NORMAL)
         else:
-            request_result_label.config(text="connection denied!",style='Red.TLabel')
+            rc_request_result_label.config(text="connection denied!",style='Red.TLabel')
             control_button.config(state=tk.NORMAL)
     except:
-        request_result_label.config(text="request failed!",style='Red.TLabel')
+        rc_request_result_label.config(text="request failed!",style='Red.TLabel')
         control_button.config(state=tk.NORMAL)
-try:
-    my_ip = get_net_info.get_ip_info()[0]
-    router_ip = get_net_info.get_ip_info()[1]
-except:
-    messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
-    quit()
 
+def send_sniff_request(ip,name,reason):
+    client=encrypted_client(ip,28245)
+    try:
+        client.run_server()
+    except:
+        sniff_request_result_label.config(text="could not initiate connection",style='Red.TLabel')
+        sniff_button.config(state=tk.NORMAL)
+        return
+    try:
+        client.send(f'{name},{reason}')
+        sniff_request_result_label.config(text="sent request...",style='Grey.TLabel')
+        response=client.recieve()
+        if response=='approved':
+            sniff_request_result_label.config(text="recieving data...",style='Grey.TLabel')
+            sniff_client=encrypted_client(ip,45689)
+            sniff_client.run_server()
+            try:
+                length=int(sniff_client.recieve())
+            except:
+                return
+            
+            if length<=1024:
+                res=sniff_client.recieve(isBytes=True)
+
+            else:
+                res=b''
+                while(length>0):
+                    res_part=sniff_client.recieve(5560,True)
+                    res+=res_part
+                    length-=4096
+            with open('recieved_pcap.pcap','wb') as f:
+                f.write(res)
+
+            # Load the pcap file
+            pcap = rdpcap('recieved_pcap.pcap')
+
+            # Get the size of the pcap file
+            size = os.path.getsize('recieved_pcap.pcap')
+            kbsize=round(size/1000)
+            pcap_size_value_label.config(text=str(kbsize)+' kbs')
+
+            # Get the number of packets in the pcap file
+            num_packets = len(pcap)
+            pcap_pnum_value_label.config(text=str(num_packets))
+
+            # Get the oldest packet date
+            oldest_packet = min(pcap, key=lambda p: p.time)
+            dt = datetime.datetime.fromtimestamp(int(oldest_packet.time))
+
+            # Extract the date, hour, minute, and second components
+            date = dt.strftime('%Y-%m-%d')
+            hour = dt.strftime('%H')
+            minute = dt.strftime('%M')
+            second = dt.strftime('%S')
+            pcap_oldest_value_label.config(text=f'{date} {hour}:{minute}:{second}')
+
+            try:
+                sniff_client.soc.close()
+                del sniff_client
+            finally:
+                open_file_button.config(state=tk.NORMAL)
+                save_file_button.config(state=tk.NORMAL)
+                sniff_button.config(state=tk.NORMAL)
+                sniff_request_result_label.config(text="share completed",style='Grey.TLabel')
+        else:
+            sniff_request_result_label.config(text="request denied!",style='Red.TLabel')
+            sniff_button.config(state=tk.NORMAL)
+    except Exception as e:
+        raise e
+        sniff_request_result_label.config(text="request failed!",style='Red.TLabel')
+        sniff_button.config(state=tk.NORMAL)
+
+def sniff_request():
+    ip=sender_ip_input.get()
+    if len(ip)<7 or re.search(r"[^0-9.]", ip) or ip.count('.')!=3:
+        messagebox.showerror("Error", "Invalid Ip, Check Input!")
+        return
+    ip_parts = ip.split('.')
+    for part in ip_parts:
+        if len(part)==0:
+            messagebox.showerror("Error", "Invalid Ip, Check Input!")
+            return
+    if not net_scanner.is_in_lan(ip):
+        messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
+        return
+    
+    print('reminder to delete none and')
+    if None and ip==my_ip:
+        messagebox.showerror("Error","Ip cannot be your ip, Check Input!")
+        return
+    try:
+        socket.inet_aton(ip)
+        if int(ip_parts[-1])==0:
+            messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
+            return 
+    except:
+        messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
+        return
+    
+    name=reciever_name_input.get()
+    reason=reciever_reason_input.get()
+
+    if re.search(r"[^a-zA-Z\s]", reason) or re.search(r"[^a-zA-Z\s]", name):
+        messagebox.showerror("Error", "Name and Reason can only contain letters")
+        return
+
+    if len(name)<3 or len(name)>30:
+        messagebox.showerror("Error", "Name has to be longer than 3 letters and shorter than 30!")
+        return
+    
+    if len(reason)<5 or len(reason)>40:
+        messagebox.showerror("Error", "Reason has to be longer than 5 letters and shorter than 40!")
+        return
+    
+    sniff_button.config(state=tk.DISABLED)
+    
+    t=threading.Thread(target=send_sniff_request,args=(ip,name,reason))
+    t.start()
+
+def save_file():
+    # Prompt the user to choose a location to save the file
+    file_path = filedialog.asksaveasfilename(defaultextension=".pcap")
+    if file_path:
+        # Copy the example file to the chosen location
+        shutil.copy("recieved_pcap.pcap", file_path)
+
+def open_file():
+    try:
+        os.system(f"recieved_pcap.pcap")
+    except:
+        messagebox.showerror('Error','File opening failed. Open menually or try again!')
+        return
+
+def check_connection():
+    while True:
+        try:
+            get_net_info.get_ip_info()
+        except:
+            messagebox.showerror("Error", "A problem in network was detected. Check connection and restart the app!")
+            attack_detecter.scanning=False
+
+            net_scanner.stop_flag=True
+
+            net_scanner.close_all_tools()
+
+            quit()
+    
 if __name__=='__main__':
+    try:
+        my_ip = get_net_info.get_ip_info()[0]
+        router_ip = get_net_info.get_ip_info()[1]
+    except:
+        messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
+        quit()
     multiprocessing.freeze_support()
 
     net_scanner = network_scanner()
@@ -555,6 +719,9 @@ if __name__=='__main__':
     root = tk.Tk()
     root.state('zoomed')
     root.title("Network Manager")
+
+    connection_check_thr=threading.Thread(target=check_connection)
+    connection_check_thr.start()
 
     # create menu bar
     menu_bar = tk.Menu(root)
@@ -667,12 +834,102 @@ if __name__=='__main__':
 
     attack_detection_frame=ttk.Frame(action_bar)
     action_bar.add(attack_detection_frame,text="Attack Detector")
+    
+    remote_control_frame=ttk.Frame(action_bar)
+    action_bar.add(remote_control_frame,text="Remote Control")
 
     sniff_share_frame=ttk.Frame(action_bar)
     action_bar.add(sniff_share_frame,text="Sniff Share")
 
-    remote_control_frame=ttk.Frame(action_bar)
-    action_bar.add(remote_control_frame,text="Remote Control")
+    #create frames for sniff share
+    sender_info_frame=ttk.Frame(sniff_share_frame,relief='solid',padding=17)
+    sender_info_frame.pack(padx=5, pady=0,fill=tk.X,anchor=tk.CENTER)
+
+    reciever_info_frame=ttk.Frame(sniff_share_frame,relief='solid',padding=17)
+    reciever_info_frame.pack(padx=5, pady=0,fill=tk.X)
+
+    sniff_request_frame=ttk.Frame(sniff_share_frame)
+    sniff_request_frame.pack(padx=5, pady=(25,15))
+
+    file_handle_frame=ttk.Frame(sniff_share_frame,relief='solid',padding=17)
+    file_handle_frame.pack(padx=0, pady=0,anchor='center')
+
+    #create widgets for sender info frame
+    sender_info_heading_label=ttk.Label(sender_info_frame,text="Sending Computer Information",font=(15,15),style='Grey.TLabel',justify='center')
+    sender_info_heading_label.grid(row=0, column=0, padx=5, pady=15,columnspan=2, sticky='n')
+    sender_ip_label=ttk.Label(sender_info_frame,text="Ip:",font=(20,20))
+    sender_ip_label.grid(row=1, column=0, padx=5, pady=15, sticky='e')
+    sender_ip_input=ttk.Entry(sender_info_frame,width=35)
+    sender_ip_input.grid(row=1, column=1, padx=5, pady=15, sticky='w')
+    sender_info_frame.grid_columnconfigure(0, weight=1)
+    sender_info_frame.grid_columnconfigure(1, weight=1)
+
+    #create widgets for reciever info frame
+    # add columnconfigure to make all columns the same weight
+    reciever_info_frame.columnconfigure(0, weight=26)
+    reciever_info_frame.columnconfigure(1, weight=1)
+    reciever_info_frame.columnconfigure(2, weight=1)
+    reciever_info_frame.columnconfigure(3, weight=20)
+
+    # create widgets for reciever info frame
+    reciever_info_heading_label=ttk.Label(reciever_info_frame,text="My Information",font=(15,15),style='Grey.TLabel',justify='center')
+    reciever_info_heading_label.grid(row=0, column=0, padx=5, pady=15, columnspan=4, sticky='n')
+
+    reciever_name_label=ttk.Label(reciever_info_frame,text="Name:",font=(20,20))
+    reciever_name_label.grid(row=1, column=0, padx=5, pady=15, sticky='e')
+    reciever_name_input=ttk.Entry(reciever_info_frame,width=35)
+    reciever_name_input.grid(row=1, column=1, padx=5, pady=15, sticky='w')
+
+    reciever_reason_label=ttk.Label(reciever_info_frame,text="Reason:",font=(20,20))
+    reciever_reason_label.grid(row=1, column=2, padx=(10,5), pady=15, sticky='e')
+    reciever_reason_input=ttk.Entry(reciever_info_frame,width=60)
+    reciever_reason_input.grid(row=1, column=3, padx=5, pady=15, sticky='w')
+
+    my_info_explain_label=ttk.Label(reciever_info_frame,text="(This information will be displayed at the other computer)",font=(12,12),style='Grey.TLabel',anchor='center')
+    my_info_explain_label.grid(row=2, column=0, padx=5, pady=(2,15), columnspan=4, sticky='n')
+
+    #create widgets for button frame
+    sniff_button = ttk.Button(sniff_request_frame, text="Send sniff share Request",width=30,image=run_img,compound="right",takefocus=False)
+    sniff_button.grid(row=0, column=0, padx=5, pady=5)
+    sniff_button.config(command=sniff_request)
+
+    sniff_request_result_label=ttk.Label(sniff_request_frame,text="",font=(15,15),justify='center')
+    sniff_request_result_label.grid(row=1, column=0, padx=5, pady=(15,0))
+
+    #create widgets for file handle frame
+    pcap_size_label=ttk.Label(file_handle_frame,text="Size:",font=(15,15))
+    underline_font = tkFont.Font(pcap_size_label, pcap_size_label.cget("font"))
+    underline_font.configure(underline = True)
+    pcap_size_label.configure(font=underline_font)
+    pcap_size_label.grid(row=0, column=0, padx=5, pady=15)
+
+    pcap_size_value_label=ttk.Label(file_handle_frame,text="",font=(15,15))
+    pcap_size_value_label.grid(row=0, column=1, padx=5, pady=15)
+
+    pcap_pnum_label=ttk.Label(file_handle_frame,text="Number of Packets:",font=(15,15))
+    pcap_pnum_label.grid(row=0, column=2, padx=5, pady=15)
+    pcap_pnum_label.configure(font=underline_font)
+
+    pcap_pnum_value_label=ttk.Label(file_handle_frame,text="",font=(15,15))
+    pcap_pnum_value_label.grid(row=0, column=3, padx=5, pady=15)
+
+    pcap_oldest_label=ttk.Label(file_handle_frame,text="Oldest Packet Time:",font=(15,15))
+    pcap_oldest_label.grid(row=0, column=4, padx=5, pady=15)
+    pcap_oldest_label.configure(font=underline_font)
+
+    pcap_oldest_value_label=ttk.Label(file_handle_frame,text="",font=(15,15))
+    pcap_oldest_value_label.grid(row=0, column=5, padx=5, pady=15)
+
+    save_file_button=ttk.Button(file_handle_frame, text="Save as Pcap File",width=25,takefocus=False,state=tk.DISABLED)
+    save_file_button.grid(row=1, column=0, padx=5, pady=5,columnspan=6)
+    save_file_button.config(command=save_file)
+
+    open_file_button=ttk.Button(file_handle_frame, text="Open File",width=25,takefocus=False,state=tk.DISABLED)
+    open_file_button.grid(row=2, column=0, padx=5, pady=5,columnspan=6)
+    open_file_button.config(command=open_file)
+
+    wireshark_explain_label=ttk.Label(file_handle_frame,text="(Opens with outer installed programm if exists (usually it's wireshark))",font=(13,13))
+    wireshark_explain_label.grid(row=3, column=0, padx=5, pady=5,columnspan=6)
 
     #create frames for remote control
     escape_frame=ttk.Frame(remote_control_frame)
@@ -687,8 +944,8 @@ if __name__=='__main__':
     quality_frame=ttk.Frame(remote_control_frame,relief='solid',padding=12)
     quality_frame.pack(padx=5, pady=0,fill=tk.X)
 
-    request_frame=ttk.Frame(remote_control_frame)
-    request_frame.pack(padx=5, pady=10)
+    rc_request_frame=ttk.Frame(remote_control_frame)
+    rc_request_frame.pack(padx=5, pady=10)
 
     #create widgets for escape frame
     escape_label = ttk.Label(escape_frame,text="Press escape at any time to exit control! ",font=(25,25) ,image=escape_img,compound='right',style='Red.TLabel')
@@ -720,10 +977,10 @@ if __name__=='__main__':
     controller_name_input=ttk.Entry(controller_info_frame,width=35)
     controller_name_input.grid(row=1, column=1, padx=5, pady=10, sticky='w')
 
-    reason_label=ttk.Label(controller_info_frame,text="Reason:",font=(20,20))
-    reason_label.grid(row=1, column=2, padx=(10,5), pady=10, sticky='e')
-    reason_input=ttk.Entry(controller_info_frame,width=60)
-    reason_input.grid(row=1, column=3, padx=5, pady=10, sticky='w')
+    controller_reason_label=ttk.Label(controller_info_frame,text="Reason:",font=(20,20))
+    controller_reason_label.grid(row=1, column=2, padx=(10,5), pady=10, sticky='e')
+    controller_reason_input=ttk.Entry(controller_info_frame,width=60)
+    controller_reason_input.grid(row=1, column=3, padx=5, pady=10, sticky='w')
 
     my_info_explain_label=ttk.Label(controller_info_frame,text="(This information will be displayed at the other computer)",font=(12,12),style='Grey.TLabel',anchor='center')
     my_info_explain_label.grid(row=2, column=0, padx=5, pady=(2,10), columnspan=4, sticky='n')
@@ -754,12 +1011,12 @@ if __name__=='__main__':
     quality_explain_label.grid(row=3, column=0, padx=5, pady=(2,10),columnspan=3,sticky='s')
 
     #create widgets for button frame
-    control_button = ttk.Button(request_frame, text="Send Controll Request",width=25,image=run_img,compound="right",takefocus=False)
+    control_button = ttk.Button(rc_request_frame, text="Send Controll Request",width=25,image=run_img,compound="right",takefocus=False)
     control_button.grid(row=0, column=0, padx=5, pady=5)
     control_button.config(command=control_request)
 
-    request_result_label=ttk.Label(request_frame,text="",font=(15,15),justify='center')
-    request_result_label.grid(row=1, column=0, padx=5, pady=15)
+    rc_request_result_label=ttk.Label(rc_request_frame,text="",font=(15,15),justify='center')
+    rc_request_result_label.grid(row=1, column=0, padx=5, pady=15)
 
     #create widgets for attack detection window
     attack_detecter=attacks_detection.network_attack_detector()

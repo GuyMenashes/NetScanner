@@ -132,7 +132,10 @@ class RemoteController:
             
             image_bytes=zlib.decompress(recieved)
             img_arr = np.array(bytearray(image_bytes), dtype=np.uint8) 
-            img = cv2.imdecode(img_arr, -1)
+            try:
+                img = cv2.imdecode(img_arr, -1)
+            except:
+                continue
 
             cv2.namedWindow('img',cv2.WND_PROP_FULLSCREEN)
             cv2.setWindowProperty('img', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -148,5 +151,7 @@ class RemoteController:
             self.exit_reason='controlled computer disconnected'
 
         cv2.destroyAllWindows()
-        print(count,sum,f'{1/(sum/count)} fps',lost_count)
-        self.pipe.send(self.exit_reason)
+        try:
+            print(count,sum,f'{1/(sum/count)} fps',lost_count)
+        finally:
+            self.pipe.send(self.exit_reason)

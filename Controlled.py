@@ -29,6 +29,8 @@ class RemoteControlled:
         keyboard.hook_key('escape',self.exit_share)
 
         self.share_screen()
+
+        self.pipe.send(self.exit_reason)
     
     def screen_size(self)-> tuple[int,int]:
         '''
@@ -122,7 +124,8 @@ class RemoteControlled:
             with open("shot.jpg",'rb') as f:
                 image=f.read()
 
-        print('connected') 
+        self.pipe.send('connected')
+
         while self.running:
             try:
                 self.screen_server.send(zlib.compress(image,level=9),isBytes=True)
@@ -138,4 +141,3 @@ class RemoteControlled:
                 except:
                     print('e')
                     continue
-        self.pipe.send(self.exit_reason)
