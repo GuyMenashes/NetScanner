@@ -10,7 +10,6 @@ from Controlled import RemoteControlled
 import threading
 import multiprocessing
 from sniffSen import SniffSen
-import sys
 
 class controlled_gui:
     def __init__(self):
@@ -19,7 +18,7 @@ class controlled_gui:
             self.my_ip =get_ip_info()[0]
         except:
             messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
-            sys.exit()
+            quit()
         self.root = tk.Tk()
         self.root.geometry('600x675')
         self.root.title("Network Manager")
@@ -128,15 +127,15 @@ class controlled_gui:
         self.rc_reason_value_label.grid(row=3,column=1,pady=10,sticky='w')
 
         #create widgets for buttons frame
-        self.rc_approve_button = ttk.Button(self.rc_buttons_frame, text="Approve",image=self.approve_img,compound='right',width=30,padding=(10,20),state=tk.DISABLED,command=lambda:self.start_connection_thread('a'))
+        self.rc_approve_button = ttk.Button(self.rc_buttons_frame, text="Approve",image=self.approve_img,compound='right',width=30,padding=(10,20),state=tk.DISABLED,command=lambda:self.start_rc_connection_thread('a'))
         self.rc_approve_button.grid(row=0,column=0,padx=(42,5))
 
-        self.rc_deny_button = ttk.Button(self.rc_buttons_frame, text="Deny",width=30,padding=(10,20),image=self.deny_img,compound='right',state=tk.DISABLED,command=lambda:self.start_connection_thread('d'))
+        self.rc_deny_button = ttk.Button(self.rc_buttons_frame, text="Deny",width=30,padding=(10,20),image=self.deny_img,compound='right',state=tk.DISABLED,command=lambda:self.start_rc_connection_thread('d'))
         self.rc_deny_button.grid(row=0,column=1,padx=(30,5))
 
         #create widgets for status frame
-        self.status_label= tk.Label(self.rc_status_frame,text="",font=(16,16),border=0,borderwidth=0)
-        self.status_label.pack()
+        self.rc_status_label= tk.Label(self.rc_status_frame,text="",font=(16,16),border=0,borderwidth=0)
+        self.rc_status_label.pack()
 
         #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -198,8 +197,8 @@ class controlled_gui:
         self.sns_deny_button.grid(row=0,column=1,padx=(30,5))
 
         #create widgets for status frame
-        self.status_label= tk.Label(self.sns_status_frame,text="",font=(16,16),border=0,borderwidth=0)
-        self.status_label.pack()
+        self.sns_status_label= tk.Label(self.sns_status_frame,text="",font=(16,16),border=0,borderwidth=0)
+        self.sns_status_label.pack()
 
         self.root.mainloop()
 
@@ -238,7 +237,7 @@ class controlled_gui:
 
     def start_connection(self):
         self.rc_server.send('approved')
-        self.status_label.config(text='connecting...')
+        self.rc_status_label.config(text='connecting...')
 
         rc=RemoteControlled(self.quality)
         this_pipe,other_pipe=multiprocessing.Pipe()
@@ -255,9 +254,9 @@ class controlled_gui:
         self.root.wm_state("normal")
 
         if exit_reason=='controlled computer disconnected':
-            self.status_label.config(text="Other computer stopped control or had a problem!")
+            self.rc_status_label.config(text="Other computer stopped control or had a problem!")
         else:
-            self.status_label.config(text="")
+            self.rc_status_label.config(text="")
 
         self.clean_rc_request()
         try:
@@ -356,8 +355,11 @@ class controlled_gui:
 
         try:
             self.sniff_sender.send_pcap()
+            self.sns_status_label.config(text='sniff share completed!')
             self.sniff_server.server_socket.close()
             self.sniff_server.client.close()
+        except:
+            pass
         finally:
             del self.sniff_server
 

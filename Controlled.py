@@ -6,7 +6,7 @@ import win32api, win32con
 import time
 import keyboard
 from socket import timeout
-import sys
+import ctypes
 
 class RemoteControlled:
     def __init__(self,quality):
@@ -43,7 +43,7 @@ class RemoteControlled:
         return width,height
 
     def mouse_control(self):
-        self.mouse_server=encrypted_server(55551)
+        self.mouse_server=encrypted_server(32871)
         self.mouse_server.start_server()   
         self.mouse_server.client.settimeout(0.1)
         width,height=self.screen_size()
@@ -121,8 +121,13 @@ class RemoteControlled:
         screenshot_thr.start()
         with lock:
             self.used=True
-            with open("shot.jpg",'rb') as f:
-                image=f.read()
+            try:
+                with open("shot.jpg",'rb') as f:
+                    image=f.read()
+            except:
+                time.sleep(0.05)
+                with open("shot.jpg",'rb') as f:
+                    image=f.read()
 
         self.pipe.send('connected')
 

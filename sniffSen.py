@@ -20,30 +20,7 @@ class SniffSen:
         with open('sent_pcap.pcap','rb') as f:
             pcbytes=f.read()
         
-        length=f'{len(pcbytes)}'
-        
-        try:
-            self.server.send(length)
-        except:
-            self.scanning=False
-            return
-        start=0
-        end=4096
-        while end<len(pcbytes):
-            pcbytes_part=pcbytes[start:end]
-            try:
-                self.server.send(pcbytes_part,isBytes=True)
-            except:
-                self.scanning=False
-                return
-                
-            start=end
-            end+=4096
-        try:
-            self.server.send(pcbytes[start:],isBytes=True) 
-        except:
-            self.scanning=False
-            return  
+        self.server.send(pcbytes,isBytes=True)
         
         try:
             self.server.server_socket.close()
@@ -59,4 +36,4 @@ class SniffSen:
             self.sniffed_packets.append(p)
         if not self.scanning:
             wrpcap('sent_pcap.pcap',self.sniffed_packets)
-            sys.exit()
+            quit()
