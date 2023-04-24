@@ -1,13 +1,14 @@
 import pynput
 from tkinter import *
 import zlib
+from numpy import array,uint8
 import cv2
-import numpy as np
 from screeninfo import get_monitors
 from encrypted_client import encrypted_client
 import time
 import win32api
 import keyboard
+import sys
 
 class RemoteController:
     def __init__(self,ip):
@@ -34,7 +35,7 @@ class RemoteController:
 
     def send_keyboard_event(self,key_event):
         if not self.running:
-            quit()
+            sys.exit()
         try:
             self.keyboard_client.send(f'{key_event.scan_code},{key_event.event_type}')
         except:
@@ -42,10 +43,10 @@ class RemoteController:
             self.running=False 
             print('controlled computer disconnected')
             self.mouse_listener.stop()
-            quit()
+            sys.exit()
 
     def mouse_control(self):
-        self.mouse_client=encrypted_client(self.ip,55551)
+        self.mouse_client=encrypted_client(self.ip,32871)
         self.mouse_client.run_server()
 
         self.left_pressed=False
@@ -69,7 +70,7 @@ class RemoteController:
       
     def is_clicked(self,x,y,button,pressed):
         if not self.running:
-            quit()
+            sys.exit()
 
         if button==pynput.mouse.Button.left:
             self.left_pressed=pressed
@@ -80,7 +81,7 @@ class RemoteController:
                 self.running=False 
                 self.exit_reason='controlled computer disconnected'
                 print('controlled computer disconnected')
-                quit()
+                sys.exit()
         
         elif button==pynput.mouse.Button.right:
             self.right_pressed=pressed
@@ -91,11 +92,11 @@ class RemoteController:
                 self.running=False 
                 self.exit_reason='controlled computer disconnected'
                 print('controlled computer disconnected')
-                quit()
+                sys.exit()
 
     def moved(self,x,y):
         if not self.running:
-            quit()
+            sys.exit()
 
         try:
             self.mouse_client.send(f'{round(x*self.xRatio)},{round(y*self.yRatio)},{int(self.left_pressed)},{int(self.right_pressed)}')
@@ -104,7 +105,7 @@ class RemoteController:
             self.running=False 
             self.exit_reason='controlled computer disconnected'
             print('controlled computer disconnected')
-            quit()
+            sys.exit()
 
     def display_screen(self):
         self.screen_client=encrypted_client(self.ip,19999)
@@ -131,7 +132,7 @@ class RemoteController:
                     continue
             
             image_bytes=zlib.decompress(recieved)
-            img_arr = np.array(bytearray(image_bytes), dtype=np.uint8) 
+            img_arr = array(bytearray(image_bytes), dtype=uint8) 
             try:
                 img = cv2.imdecode(img_arr, -1)
             except:
@@ -153,5 +154,7 @@ class RemoteController:
         cv2.destroyAllWindows()
         try:
             print(count,sum,f'{1/(sum/count)} fps',lost_count)
+        except:
+            pass
         finally:
             self.pipe.send(self.exit_reason)

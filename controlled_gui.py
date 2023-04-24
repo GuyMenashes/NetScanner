@@ -10,6 +10,7 @@ from Controlled import RemoteControlled
 import threading
 import multiprocessing
 from sniffSen import SniffSen
+import sys
 
 class controlled_gui:
     def __init__(self):
@@ -18,7 +19,7 @@ class controlled_gui:
             self.my_ip =get_ip_info()[0]
         except:
             messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
-            quit()
+            sys.exit()
         self.root = tk.Tk()
         self.root.geometry('600x675')
         self.root.title("Network Manager")

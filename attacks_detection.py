@@ -278,9 +278,8 @@ class network_attack_detector:
         dos_thr=threading.Thread(target=sniff,kwargs={'prn':self.detect_dos ,'store': False})
         brodcast_thr=threading.Thread(target=sniff,kwargs={'prn':self.detect_broadcast_storms ,'store': False})
         port_scanning_thr=threading.Thread(target=sniff,kwargs={'prn':self.detect_port_scanning ,'store': False})
-        malware_detection_thr=threading.Thread(target=self.malware_sig_detection)
 
-        threads=[pair_thr,arp_thr,dos_thr,brodcast_thr,port_scanning_thr,malware_detection_thr]
+        threads=[pair_thr,arp_thr,dos_thr,brodcast_thr,port_scanning_thr]
 
         for t in threads:
             t.start()

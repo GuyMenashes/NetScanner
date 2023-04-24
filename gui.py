@@ -691,8 +691,11 @@ def open_file():
 
 def check_connection():
     while True:
+        if not attack_detecter.scanning:
+            exit()
         try:
             get_net_info.get_ip_info()
+            time.sleep(0.1)
         except:
             messagebox.showerror("Error", "A problem in network was detected. Check connection and restart the app!")
             attack_detecter.scanning=False
@@ -715,6 +718,8 @@ if __name__=='__main__':
     net_scanner = network_scanner()
     scanning = False
     scanning_thr=threading.Thread()
+    attack_detecter=attacks_detection.network_attack_detector()
+    attack_detecter.start_sniffers()
 
     root = tk.Tk()
     root.state('zoomed')
@@ -1019,9 +1024,6 @@ if __name__=='__main__':
     rc_request_result_label.grid(row=1, column=0, padx=5, pady=15)
 
     #create widgets for attack detection window
-    attack_detecter=attacks_detection.network_attack_detector()
-    attack_detecter.start_sniffers()
-
     arp_headline=ttk.Label(attack_detection_frame,text="Arp Spoffing:",font=('Arial',20))
     arp_headline.grid(row=0, column=0, padx=5, pady=5)
     arp_log=tk.Text(attack_detection_frame,width=34,height=38)

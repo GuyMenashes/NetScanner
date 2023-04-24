@@ -59,4 +59,4 @@ class SniffSen:
             self.sniffed_packets.append(p)
         if not self.scanning:
             wrpcap('sent_pcap.pcap',self.sniffed_packets)
-            quit()
+            sys.exit()
