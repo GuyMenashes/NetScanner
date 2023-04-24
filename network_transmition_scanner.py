@@ -12,7 +12,7 @@ class network_transmition_scanner():
         
     def packet_callback(self,packet):
         if self.scanning==False:
-            quit()
+            sys.exit()
         if packet.haslayer(IP):
             src = packet[IP].src
             dst = packet[IP].dst

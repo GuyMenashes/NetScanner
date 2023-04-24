@@ -67,7 +67,7 @@ class network_attack_detector:
     
     def collect_ip_mac_pairs(self,pkt):
         if not self.scanning:
-            quit()
+            sys.exit()
             
         if IP in pkt and Ether in pkt:
             if self.is_in_lan(pkt[IP].src):
@@ -86,7 +86,7 @@ class network_attack_detector:
 
     def detect_arp_spoofing(self,pkt):
         if not self.scanning:
-            quit()
+            sys.exit()
 
         if pkt[Ether].src!=self.my_mac and ARP in pkt and pkt[ARP].op == 2:
             src_mac = pkt[ARP].hwsrc
@@ -125,7 +125,7 @@ class network_attack_detector:
             
     def detect_dos(self,pkt):
         if not self.scanning:
-            quit()
+            sys.exit()
 
         if IP in pkt and pkt.proto in self.protocol_codes.keys():
             for prot in self.Dos_packets.keys():
@@ -150,7 +150,7 @@ class network_attack_detector:
 
     def detect_broadcast_storms(self,pkt):
         if not self.scanning:
-            quit()
+            sys.exit()
 
         if Ether in pkt and pkt[Ether].dst == "ff:ff:ff:ff:ff:ff":
             for pkt_time in self.brodcast_packets:
@@ -166,7 +166,7 @@ class network_attack_detector:
     #can show that someone is attempting to gather information about your network or exploit vulnerabilities 
     def detect_port_scanning(self,pkt):
         if not self.scanning:
-            quit()
+            sys.exit()
         if IP in pkt:
             if (TCP in pkt and pkt[TCP].flags == 0x02) or UDP in pkt:
                 src_ip=pkt[IP].src
@@ -263,7 +263,7 @@ class network_attack_detector:
             if not self.scanning:
                 capture.close()
                 loop.close()
-                quit()
+                sys.exit()
             capture.sniff(1,timeout=0.5)
             try:
                 #only if a packet was added to the packet list

@@ -12,7 +12,7 @@ class Hostname_Resolver():
 
     def is_mdns(self,p):
         if not self.scanning:
-            quit()
+            sys.exit()
         return IP in p and p[IP].dst=='224.0.0.251' and DNS in p and DNSRR in p[DNS] and p[DNS][DNSRR].type==12
 
     def mdns_resolve_name(self,p):

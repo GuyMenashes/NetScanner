@@ -692,7 +692,7 @@ def open_file():
 def check_connection():
     while True:
         if not attack_detecter.scanning:
-            exit()
+            sys.exit()
         try:
             get_net_info.get_ip_info()
             time.sleep(0.1)
@@ -704,7 +704,7 @@ def check_connection():
 
             net_scanner.close_all_tools()
 
-            quit()
+            sys.exit()
     
 if __name__=='__main__':
     try:
@@ -712,7 +712,7 @@ if __name__=='__main__':
         router_ip = get_net_info.get_ip_info()[1]
     except:
         messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
-        quit()
+        sys.exit()
     multiprocessing.freeze_support()
 
     net_scanner = network_scanner()

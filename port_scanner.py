@@ -38,7 +38,7 @@ class PortScanner():
     def scanner(self,ip,start,end,results,wait_time):
         for port in range(start, end):
             if not self.scanning:
-                quit()
+                sys.exit()
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(wait_time)
@@ -91,7 +91,7 @@ class PortScanner():
             t.join()       
 
         if not self.scanning:
-            quit()
+            sys.exit()
 
         if mode=='simple':
             self.scanned[ip]=results
@@ -134,7 +134,7 @@ class PortScanner():
         results=[]
         for port in ports:
             if not self.scanning:
-                quit()
+                sys.exit()
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(0.1)

@@ -15,7 +15,7 @@ class port_connections_scanner():
     # Define a function to handle incoming packets
     def packet_handler(self,packet):
         if not self.scanning:
-            quit()
+            sys.exit()
             
         if self.is_in_lan(packet[IP].dst):
             if self.connections.get((packet[IP].dst,packet[TCP].dport)):
@@ -32,7 +32,7 @@ class port_connections_scanner():
 
     def packet_filter(self,packet):
         if not self.scanning:
-            quit()
+            sys.exit()
         if packet.haslayer(IP):
             if packet.haslayer(TCP) and (self.is_in_lan(packet[IP].dst) or self.is_in_lan(packet[IP].src)):
                 if not (packet[IP].dst==self.my_ip or packet[IP].src==self.my_ip):
