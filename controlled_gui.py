@@ -87,13 +87,13 @@ class controlled_gui:
         self.escape_frame=ttk.Frame(self.remote_control_frame,padding=(5,5))
         self.escape_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.rc_ip_frame=ttk.Frame(self.remote_control_frame,borderwidth=4,relief='solid',padding=(10,20))
+        self.rc_ip_frame=ttk.Frame(self.remote_control_frame,borderwidth=4,relief='solid',padding=(10,13))
         self.rc_ip_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.rc_request_frame=ttk.Frame(self.remote_control_frame,borderwidth=4,relief='solid',padding=(10,20))
+        self.rc_request_frame=ttk.Frame(self.remote_control_frame,borderwidth=4,relief='solid',padding=(10,13))
         self.rc_request_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.rc_buttons_frame=ttk.Frame(self.remote_control_frame,padding=(10,20))
+        self.rc_buttons_frame=ttk.Frame(self.remote_control_frame,padding=(10,13))
         self.rc_buttons_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
         self.rc_status_frame=ttk.Frame(self.remote_control_frame,padding=(10,0))
@@ -154,13 +154,13 @@ class controlled_gui:
         #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
         #create frames for sniff share frame
-        self.sns_ip_frame=ttk.Frame(self.sniff_share_frame,borderwidth=4,relief='solid',padding=(10,20))
+        self.sns_ip_frame=ttk.Frame(self.sniff_share_frame,borderwidth=4,relief='solid',padding=(10,13))
         self.sns_ip_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.sns_request_frame=ttk.Frame(self.sniff_share_frame,borderwidth=4,relief='solid',padding=(10,20))
+        self.sns_request_frame=ttk.Frame(self.sniff_share_frame,borderwidth=4,relief='solid',padding=(10,13))
         self.sns_request_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.sns_buttons_frame=ttk.Frame(self.sniff_share_frame,padding=(10,20))
+        self.sns_buttons_frame=ttk.Frame(self.sniff_share_frame,padding=(10,13))
         self.sns_buttons_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
         self.sns_status_frame=ttk.Frame(self.sniff_share_frame,padding=(10,0))

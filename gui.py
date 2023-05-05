@@ -572,22 +572,18 @@ def send_sniff_request(ip,name,reason):
             sniff_request_result_label.config(text="recieving data...",style='Grey.TLabel')
             sniff_client=encrypted_client(ip,45689)
             sniff_client.run_server()
-            try:
-                length=int(sniff_client.recieve())
-            except:
-                return
-            
-            if length<=1024:
-                res=sniff_client.recieve(isBytes=True)
+            time.sleep(2)
 
-            else:
-                res=b''
-                while(length>0):
-                    res_part=sniff_client.recieve(5560,True)
-                    res+=res_part
-                    length-=4096
+            length=int(sniff_client.recieve())
+            sniff_client.send('recieved')
+            recieved_bytes=b''
+            while len(recieved_bytes)<length:
+                res=sniff_client.recieve(1_000_000,isBytes=True)
+                sniff_client.send('recieved')
+                recieved_bytes+=res
+
             with open('recieved_pcap.pcap','wb') as f:
-                f.write(res)
+                f.write(recieved_bytes)
 
             # Load the pcap file
             pcap = rdpcap('recieved_pcap.pcap')
@@ -624,7 +620,6 @@ def send_sniff_request(ip,name,reason):
             sniff_request_result_label.config(text="request denied!",style='Red.TLabel')
             sniff_button.config(state=tk.NORMAL)
     except Exception as e:
-        raise e
         sniff_request_result_label.config(text="request failed!",style='Red.TLabel')
         sniff_button.config(state=tk.NORMAL)
 
@@ -642,8 +637,7 @@ def sniff_request():
         messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
         return
     
-    print('reminder to delete none and')
-    if None and ip==my_ip:
+    if ip==my_ip:
         messagebox.showerror("Error","Ip cannot be your ip, Check Input!")
         return
     try:
@@ -705,6 +699,10 @@ def check_connection():
             net_scanner.close_all_tools()
 
             sys.exit()
+
+def on_click_link(event, link):
+    import webbrowser
+    webbrowser.open_new(link)
     
 if __name__=='__main__':
     try:
@@ -713,8 +711,23 @@ if __name__=='__main__':
     except:
         messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
         sys.exit()
-    multiprocessing.freeze_support()
+    
+    try:
+        sniff(1)
+    except:
+        link='https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe'
+        dialog = tk.Tk()
+        dialog.title("Winpcap Error")
+        label = tk.Label(dialog, text="In order to use this app, please download winpcap from this link:")
+        label.pack(padx=10, pady=5)
+        link_label = tk.Label(dialog, text=link, fg="blue", cursor="hand2")
+        link_label.pack(padx=10, pady=5)
+        link_label.bind("<Button-1>", lambda event: on_click_link(event, link))
+        dialog.mainloop()
+        quit()
 
+    multiprocessing.freeze_support()
+ 
     net_scanner = network_scanner()
     scanning = False
     scanning_thr=threading.Thread()

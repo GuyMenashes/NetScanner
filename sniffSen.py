@@ -11,17 +11,34 @@ class SniffSen:
         self.lock=threading.Lock()
         threading.Thread(target=self.sniffer).start()
 
+        with open('sent_pcap.pcap','wb') as f:
+            f.write(b'')
+
     def send_pcap(self):
         self.server=encrypted_server(45689)
         self.server.start_server()
-        
-        wrpcap('sent_pcap.pcap',self.sniffed_packets)
+
+        length=os.path.getsize('sent_pcap.pcap')
+
+        self.server.send(str(length))
 
         with open('sent_pcap.pcap','rb') as f:
             pcbytes=f.read()
-        
-        self.server.send(pcbytes,isBytes=True)
-        
+
+        self.server.recieve()
+
+        if length>600_000:
+            for i in range(0,length,500000):
+                if i+500000<length:
+                    self.server.send(pcbytes[i:i+500000],isBytes=True)
+                    self.server.recieve()
+                else:
+                    self.server.send(pcbytes[i:],isBytes=True)
+                    self.server.recieve()
+        else:
+            self.server.send(pcbytes,isBytes=True)
+            self.server.recieve()
+
         try:
             self.server.server_socket.close()
             self.server.client.close()
@@ -33,7 +50,6 @@ class SniffSen:
 
     def save_packet(self,p):
         with self.lock:
-            self.sniffed_packets.append(p)
+            wrpcap('sent_pcap.pcap', p, append=True)
         if not self.scanning:
-            wrpcap('sent_pcap.pcap',self.sniffed_packets)
             quit()

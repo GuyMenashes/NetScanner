@@ -113,7 +113,7 @@ class network_attack_detector:
 
             for pair,p_list in self.arp_packets.items():
                 if len(p_list) >=30 and not((pair[0],pair[1]) in self.arp_attacks.keys() and time.time()-self.arp_attacks[(pair[0],pair[1])]<10):
-                    self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now().strftime('%d/%m/%Y %H:%M:%')}")
+                    self.attacks_records['arp'].append(f"Possible ARP spoofing detected from {pkt[Ether].src} to {pkt[Ether].dst} at {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
                     self.arp_attacks[(pair[0],pair[1])]=time.time()
                     return
 
