@@ -128,6 +128,8 @@ class RemoteController:
                 lost_count+=1
                 try:
                     cv2.imshow("img", img)
+                except:
+                    pass
                 finally:
                     continue
             

@@ -57,8 +57,7 @@ def take_screenshot(lock,quality):
     with lock:
         img.save("shot.jpg", 'JPEG', quality=quality)
 
-'''
-def take_screenshot(lock):
+def take_mouse_screenshot(lock):
     try:
         cursor_info=get_cursor()
     except Exception as e:
@@ -74,4 +73,3 @@ def take_screenshot(lock):
     img = ImageGrab.grab(bbox=None, include_layered_windows=True)
 
     ratio = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
-'''

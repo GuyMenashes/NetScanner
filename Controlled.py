@@ -6,7 +6,6 @@ import win32api, win32con
 import time
 import keyboard
 from socket import timeout
-import ctypes
 
 class RemoteControlled:
     def __init__(self,quality):

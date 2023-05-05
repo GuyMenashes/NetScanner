@@ -23,7 +23,7 @@ class network_scanner():
     self.net_transfer=network_transmition_scanner()
     net_transfer_thr=threading.Thread(target=self.net_transfer.run_scanner)
     net_transfer_thr.start()
-    self.my_ip=get_net_info.get_ip_info()[0]
+    self.my_ip,self.default_gateway=get_net_info.get_ip_info()[:2]
     self.scanning=False
     self.is_ps_all=False
     self.is_resolving_names=False
@@ -65,7 +65,9 @@ class network_scanner():
   
   def ping_verefication(self,ip):
     result = subprocess.run(['ping', '-n', '1', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.returncode != 0
+    output = subprocess.run(['ping', '-n', '1', ip], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = output.stdout.decode(encoding='utf-8',errors='ignore')
+    return result.returncode != 0 or self.my_ip+':' in output
 
   def resolve_all_names(self):
     name_threads=[]
@@ -166,7 +168,7 @@ class network_scanner():
 
       #check if all adresses are valid ip adresses, raises error if not
       for ip in ip_list:
-        if ip.count(".")!=3 or not self.is_in_lan(ip):
+        if ip.count(".")!=3 or not self.is_in_lan(ip) or '0' in ip.split('.'):
            return False
         socket.inet_aton(ip)
 

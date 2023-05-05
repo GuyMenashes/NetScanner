@@ -10,9 +10,23 @@ from Controlled import RemoteControlled
 import threading
 import multiprocessing
 from sniffSen import SniffSen
+from scapy.all import *
 
 class controlled_gui:
     def __init__(self):
+        try:
+            sniff(1)
+        except:
+            link='https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe'
+            dialog = tk.Tk()
+            dialog.title("Winpcap Error")
+            label = tk.Label(dialog, text="In order to use this app, please download winpcap from this link:")
+            label.pack(padx=10, pady=5)
+            link_label = tk.Label(dialog, text=link, fg="blue", cursor="hand2")
+            link_label.pack(padx=10, pady=5)
+            link_label.bind("<Button-1>", lambda event: self.on_click_link(event, link))
+            dialog.mainloop()
+            quit()
         self.running=True
         try:
             self.my_ip =get_ip_info()[0]
@@ -228,6 +242,10 @@ class controlled_gui:
         self.rc_reason_value_label.config(text=reason)
         self.rc_approve_button.config(state=tk.ACTIVE)
         self.rc_deny_button.config(state=tk.ACTIVE)
+
+    def on_click_link(self,event, link):
+        import webbrowser
+        webbrowser.open_new(link)
                 
     def start_rc_connection_thread(self,code):
         if code=='a':

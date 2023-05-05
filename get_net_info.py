@@ -10,7 +10,6 @@ def get_ip_info()->tuple[str,str,str,list[str]]:
 
   output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   output = output.stdout.decode(encoding='utf-8',errors='ignore')
-  output=output[output.find('Wi-Fi:'):]
 
   lines = output.split('\n')
   for i,line in enumerate(lines):
