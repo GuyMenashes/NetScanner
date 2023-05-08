@@ -409,12 +409,15 @@ if __name__=='__main__':
     cg=controlled_gui()
     try:
         cg.rc_server.server_socket.close()
-        cg.rc_server.client.close()
+        if hasattr(cg.rc_server,'client'):
+            cg.rc_server.client.close()
+        del cg.rc_server.server_socket
         cg.sniff_server.server_socket.close()
-        cg.sniff_server.client.close()
+        if hasattr(cg.sniff_server,'client'):
+            cg.sniff_server.client.close()
+        del cg.sniff_server.server_socket
     except:
         pass
     finally:
         cg.sniff_sender.scanning=False
         cg.running=False
-    

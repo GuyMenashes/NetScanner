@@ -58,6 +58,8 @@ def update_device_table():
 
             device_row=device_table.insert("", "end",str(i),text='',image=image, values=[device.name+added,device.ip,device.mac,device.mac_vendor,f'{device.data_transfered} Bytes'])
             device_table.insert(device_row,"end",device_row+"_0",values=[" Open Ports:"]+device.get_port_desc())
+        run_network_test_button.config(state=tk.NORMAL
+        )
     else:
         try:
             for i,item_id in enumerate(device_table.get_children()):
@@ -89,7 +91,7 @@ def update_device_table():
 
     root.update()
 
-    root.after(400,update_device_table)
+    root.after(700,update_device_table)
 
 def update_progress_bar():
     if not scanning:
@@ -122,6 +124,7 @@ def start_scan():
     progress_bar["maximum"]=len(net_scanner.ips_to_scan)+140
 
     stop_button.config(state=tk.NORMAL)
+    run_network_test_button.config(state=tk.DISABLED)
     update_progress_bar()
     if len(device_table.get_children())==0:
         update_device_table()
@@ -191,7 +194,7 @@ def show_popup_menu(event):
 
         popup_menu.post(event.x_root, event.y_root)
 
-def run_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label):
+def run_shutdown_restart_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label):
     run_button.config(state=tk.DISABLED)
 
     if not re.match(r'^\d+$',wait_time_entry.get()) or int(wait_time_entry.get())>315360000:
@@ -215,11 +218,11 @@ def run_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_v
     
     action_thr.start()
 
-    wait_for_result(popup,output,result_value_label,run_button)
+    wait_for_shutdown_restart_result(popup,output,result_value_label,run_button)
 
-def wait_for_result(popup,output,result_value_label,run_button):
+def wait_for_shutdown_restart_result(popup,output,result_value_label,run_button):
     if len(output)==0:
-        popup.after(50,lambda: wait_for_result(popup,output,result_value_label,run_button))
+        popup.after(50,lambda: wait_for_shutdown_restart_result(popup,output,result_value_label,run_button))
         return
             
     line_width = 50
@@ -252,7 +255,7 @@ def shutdown_restart_window(ip,action,message='',time='',status='\n\n'):
     message_entry.pack(padx=10)
 
     # Add buttons for run and cancel
-    run_button = ttk.Button(popup, text="Run",width=14, command=lambda:run_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label))
+    run_button = ttk.Button(popup, text="Run",width=14, command=lambda:run_shutdown_restart_action(popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label))
     run_button.pack(pady=5)
 
     # Add a label for result
@@ -275,7 +278,7 @@ def popular_port_scan(device_pos):
     device:Device.Device = net_scanner.devices[device_pos]
     threading.Thread(target=device.popular_port_scan).start()
 
-def check_ratio(start_port, end_port, chunk_size):
+def check_threads_ratio(start_port, end_port, chunk_size):
     num_ports = end_port - start_port + 1
     if chunk_size>num_ports:
         return "Chunk size Bigger than the number of ports to scan!"
@@ -302,8 +305,8 @@ def scan_ports(start_port_entry,end_port_entry,chunk_size_entry,popup,device_pos
     
     device:Device.Device = net_scanner.devices[device_pos]
 
-    if check_ratio(start_port, end_port, chunk_size)!='':
-        messagebox.showerror("Error",check_ratio(start_port, end_port, chunk_size))
+    if check_threads_ratio(start_port, end_port, chunk_size)!='':
+        messagebox.showerror("Error",check_threads_ratio(start_port, end_port, chunk_size))
         return
     device
     threading.Thread(target=lambda:device.intense_port_scan(start_port,end_port,chunk_size,accuracy)).start()
@@ -437,12 +440,14 @@ def update_network_test_results():
         ping_label.config(text=f"{network_tester.ping}")
         latency_label.config(text=f"{network_tester.latency}")
         bandwidth_label.config(text=f"{network_tester.bandwidth}")
+        scan_button.config(state=tk.NORMAL)
     else:
         root.after(100,update_network_test_results)
 
 def start_network_test():
     run_network_test_button.config(state=tk.DISABLED)
     threading.Thread(target=network_tester.full_test).start()
+    scan_button.config(state=tk.DISABLED)
     animate_loading_gif()
     update_network_test_results()
 
@@ -742,6 +747,7 @@ if __name__=='__main__':
     connection_check_thr.start()
 
     # create menu bar
+    '''
     menu_bar = tk.Menu(root)
     file_menu = tk.Menu(menu_bar, tearoff=0)
     file_menu.add_command(label="Exit", command=root.quit)
@@ -754,6 +760,8 @@ if __name__=='__main__':
     menu_bar.add_cascade(label="Help", menu=help_menu)
 
     root.config(menu=menu_bar)
+    '''
+    
     font_family = "Courier New"
     font_size = 14
 
@@ -843,21 +851,21 @@ if __name__=='__main__':
     network_scanner_frame=ttk.Frame(action_bar)
     action_bar.add(network_scanner_frame,text="Network Scanner")
 
-    password_testing_frame=ttk.Frame(action_bar)
-    action_bar.add(password_testing_frame,text="Password Tester")
+    remote_control_frame=ttk.Frame(action_bar)
+    action_bar.add(remote_control_frame,text="Remote Control")
 
     ttk.Style().configure('Custom.TFrame', background='gray35')
     network_testing_frame=ttk.Frame(action_bar,style='Custom.TFrame')
     action_bar.add(network_testing_frame,text="Netwotk Tester")
 
-    attack_detection_frame=ttk.Frame(action_bar)
-    action_bar.add(attack_detection_frame,text="Attack Detector")
-    
-    remote_control_frame=ttk.Frame(action_bar)
-    action_bar.add(remote_control_frame,text="Remote Control")
-
     sniff_share_frame=ttk.Frame(action_bar)
     action_bar.add(sniff_share_frame,text="Sniff Share")
+
+    attack_detection_frame=ttk.Frame(action_bar)
+    action_bar.add(attack_detection_frame,text="Attack Detector")
+
+    password_testing_frame=ttk.Frame(action_bar)
+    action_bar.add(password_testing_frame,text="Password Tester")
 
     #create frames for sniff share
     sender_info_frame=ttk.Frame(sniff_share_frame,relief='solid',padding=17)
