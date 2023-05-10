@@ -153,6 +153,8 @@ class RemoteController:
         if self.exit_reason=='':
             self.exit_reason='controlled computer disconnected'
 
+        self.running=False
+
         cv2.destroyAllWindows()
         try:
             print(count,sum,f'{1/(sum/count)} fps',lost_count)

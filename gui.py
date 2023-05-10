@@ -58,8 +58,7 @@ def update_device_table():
 
             device_row=device_table.insert("", "end",str(i),text='',image=image, values=[device.name+added,device.ip,device.mac,device.mac_vendor,f'{device.data_transfered} Bytes'])
             device_table.insert(device_row,"end",device_row+"_0",values=[" Open Ports:"]+device.get_port_desc())
-        run_network_test_button.config(state=tk.NORMAL
-        )
+        run_network_test_button.config(state=tk.NORMAL)
     else:
         try:
             for i,item_id in enumerate(device_table.get_children()):

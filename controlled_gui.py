@@ -46,20 +46,6 @@ class controlled_gui:
 
         self.sniff_sender=SniffSen()
 
-        # create menu bar
-        self.menu_bar = tk.Menu(self.root)
-        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.file_menu.add_command(label="Exit", command=self.root.quit)
-        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
-
-        settings_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Settings", menu=settings_menu)
-
-        help_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Help", menu=help_menu)
-
-        self.root.config(menu=self.menu_bar)
-
         #load images
         self.approve_img= Image.open("images/passed.png")
         self.approve_img = self.approve_img.resize((20, 20))  # Resize image
@@ -93,7 +79,7 @@ class controlled_gui:
         self.rc_request_frame=ttk.Frame(self.remote_control_frame,borderwidth=4,relief='solid',padding=(10,13))
         self.rc_request_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.rc_buttons_frame=ttk.Frame(self.remote_control_frame,padding=(10,13))
+        self.rc_buttons_frame=ttk.Frame(self.remote_control_frame,padding=(10,7))
         self.rc_buttons_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
         self.rc_status_frame=ttk.Frame(self.remote_control_frame,padding=(10,0))
@@ -160,7 +146,7 @@ class controlled_gui:
         self.sns_request_frame=ttk.Frame(self.sniff_share_frame,borderwidth=4,relief='solid',padding=(10,13))
         self.sns_request_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
-        self.sns_buttons_frame=ttk.Frame(self.sniff_share_frame,padding=(10,13))
+        self.sns_buttons_frame=ttk.Frame(self.sniff_share_frame,padding=(10,7))
         self.sns_buttons_frame.pack(side=tk.TOP,padx=5, pady=5,fill=tk.BOTH)
 
         self.sns_status_frame=ttk.Frame(self.sniff_share_frame,padding=(10,0))
@@ -268,6 +254,7 @@ class controlled_gui:
         bar_thr=threading.Thread(target=self.create_top_bar)
         bar_thr.start()
         exit_reason=this_pipe.recv()
+        print('share ended')
         self.root.deiconify()
         self.root.wm_state("normal")
 
