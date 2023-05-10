@@ -117,7 +117,7 @@ class RemoteController:
         while self.running:
             a=time.time()
             try:
-                recieved=self.screen_client.recieve(1_000_000,isBytes=True)
+                recieved=self.screen_client.recieve(1_200_000,isBytes=True)
             except:
                 keyboard.unhook_all()
                 self.mouse_listener.stop()
@@ -132,20 +132,27 @@ class RemoteController:
                     pass
                 finally:
                     continue
-            
-            image_bytes=zlib.decompress(recieved)
-            img_arr = array(bytearray(image_bytes), dtype=uint8) 
             try:
-                img = cv2.imdecode(img_arr, -1)
-            except:
-                continue
+            
+                image_bytes=zlib.decompress(recieved)
+                img_arr = array(bytearray(image_bytes), dtype=uint8) 
+                try:
+                    img = cv2.imdecode(img_arr, -1)
+                except:
+                    continue
 
-            cv2.namedWindow('img',cv2.WND_PROP_FULLSCREEN)
-            cv2.setWindowProperty('img', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-            sum+=time.time()-a
-            count+=1
-            cv2.imshow("img", img)
-            # Press Esc key to exit
+                cv2.namedWindow('img',cv2.WND_PROP_FULLSCREEN)
+                cv2.setWindowProperty('img', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                sum+=time.time()-a
+                count+=1
+                cv2.imshow("img", img)
+                # Press Esc key to exit
+            except:
+                keyboard.unhook_all()
+                self.mouse_listener.stop()
+                self.running=False
+                self.exit_reason='controlled computer disconnected'
+                break
             if cv2.waitKey(1) == 27:
                 self.exit_reason='quited'
                 break
@@ -154,6 +161,19 @@ class RemoteController:
             self.exit_reason='controlled computer disconnected'
 
         self.running=False
+        try:
+            del self.screen_client.soc
+        except:
+            pass
+        try:
+            del self.mouse_client.soc
+        except:
+            pass
+        try:
+            del self.keyboard_client.soc
+        except:
+            pass
+
 
         cv2.destroyAllWindows()
         try:

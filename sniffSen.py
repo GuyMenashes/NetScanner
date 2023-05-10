@@ -22,8 +22,9 @@ class SniffSen:
 
         self.server.send(str(length))
 
-        with open('sent_pcap.pcap','rb') as f:
-            pcbytes=f.read()
+        with self.lock:
+            with open('sent_pcap.pcap','rb') as f:
+                pcbytes=f.read()
 
         self.server.recieve()
 
@@ -51,5 +52,8 @@ class SniffSen:
     def save_packet(self,p):
         with self.lock:
             wrpcap('sent_pcap.pcap', p, append=True)
+            if os.path.getsize('sent_pcap.pcap')>2_500_000:
+                with open('sent_pcap.pcap','wb'):
+                    pass
         if not self.scanning:
             quit()
