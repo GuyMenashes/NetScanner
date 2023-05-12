@@ -1,3 +1,4 @@
+# Importing necessary modules
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -22,59 +23,74 @@ from scapy.all import *
 import datetime
 from tkinter import filedialog
 import shutil
-    
+
 class gui:
+    # Initialize the GUI class
     def __init__(self):
+        # Get the IP address of the current device and the router's IP address
         try:
             self.my_ip = get_net_info.get_ip_info()[0]
             self.router_ip = get_net_info.get_ip_info()[1]
         except:
+            # If there is an error, show an error message and exit the program
             messagebox.showerror("Error", "You must be connected to wifi in order to start this app!")
             sys.exit()
-        
+
+        # Check if winpcap is installed on the system
         try:
             sniff(1)
         except:
+            # If winpcap is not installed, show a dialog box with a link to download it
             link='https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe'
             dialog = tk.Tk()
             dialog.title("Winpcap Error")
             label = tk.Label(dialog, text="In order to use this app, please download winpcap from this link:")
             label.pack(padx=10, pady=5)
+            # Create a clickable link to open the download link in a web browser
             link_label = tk.Label(dialog, text=link, fg="blue", cursor="hand2")
             link_label.pack(padx=10, pady=5)
             link_label.bind("<Button-1>", lambda event: self.on_click_link(event, link))
             dialog.mainloop()
             quit()
-    
+
+        # Initialize the network scanner object
         self.net_scanner = network_scanner()
+        # Initialize variables for scanning and detecting network attacks
         self.scanning = False
         self.scanning_thr=threading.Thread()
         self.attack_detecter=attacks_detection.network_attack_detector()
         self.attack_detecter.start_sniffers()
 
+        # Create the main window for the GUI
         self.root = tk.Tk()
+        # Maximize the window to fill the screen
         self.root.state('zoomed')
+        # Set the title of the window
         self.root.title("Network Manager")
 
+        # Initialize a thread to check the connection status
         self.connection_check_thr=threading.Thread(target=self.check_connection)
         self.connection_check_thr.start()
 
+        # Set default font family and size
         self.font_family = "Courier New"
         self.font_size = 14
 
-        # create styles
+        # Configure styles for GUI elements using the default font and size
         ttk.Style().configure("Treeview", font=(self.font_family, self.font_size), rowheight=36)
-        ttk.Style().configure("TButton", font=(self.font_family, self.font_size),padding=5)
-        ttk.Style().configure("TEntry", font=(self.font_family, self.font_size),padding=5,height=3)
+        ttk.Style().configure("TButton", font=(self.font_family, self.font_size), padding=5)
+        ttk.Style().configure("TEntry", font=(self.font_family, self.font_size), padding=5, height=3)
         ttk.Style().configure("TRadiobutton", font=(self.font_family, self.font_size))
         ttk.Style().configure("TCheckbutton", font=(self.font_family, self.font_size))
-        ttk.Style().configure("TCombobox", font=(self.font_family, self.font_size),height=100)
-        ttk.Style().configure("Red.TLabel",foreground="red")
-        ttk.Style().configure("Grey.TLabel",foreground="grey25")
-        ttk.Style().configure("Orange.TLabel",foreground="DarkOrange3")
-        ttk.Style().configure("Yellow.TLabel",foreground="goldenrod1")
+        ttk.Style().configure("TCombobox", font=(self.font_family, self.font_size), height=100)
 
-        #load all images
+        # Configure custom label styles with different foreground colors
+        ttk.Style().configure("Red.TLabel", foreground="red")
+        ttk.Style().configure("Grey.TLabel", foreground="grey25")
+        ttk.Style().configure("Orange.TLabel", foreground="DarkOrange3")
+        ttk.Style().configure("Yellow.TLabel", foreground="goldenrod1")
+
+        # Load all images used in the GUI
         self.device_img = Image.open("images/device.png")
         self.device_img = self.device_img.resize((20, 20))  # Resize image
         self.device_img = ImageTk.PhotoImage(self.device_img)
@@ -116,7 +132,7 @@ class gui:
         self.question_img = ImageTk.PhotoImage(self.question_img)
 
         self.upload_img=Image.open("images/upload.png")
-        self.upload_img=self.upload_img.resize((300,350))
+        self.upload_img=self.upload_img.resize((300,350))# Resize image
         self.upload_img = ImageTk.PhotoImage(self.upload_img)
 
         self.ping_img=Image.open("images/ping.png")
@@ -124,18 +140,18 @@ class gui:
         self.ping_img = ImageTk.PhotoImage(self.ping_img)
 
         self.bandwidth_img=Image.open("images/bandwidth.png")
-        self.bandwidth_img=self.bandwidth_img.resize((300,350))
+        self.bandwidth_img=self.bandwidth_img.resize((300,350))# Resize image
         self.bandwidth_img = ImageTk.PhotoImage(self.bandwidth_img)
 
         self.latency_img=Image.open("images/latency.png")
-        self.latency_img=self.latency_img.resize((300,350))
+        self.latency_img=self.latency_img.resize((300,350))# Resize image
         self.latency_img = ImageTk.PhotoImage(self.latency_img)
 
         self.download_img=Image.open("images/download.png")
         self.download_img = ImageTk.PhotoImage(self.download_img)
 
         self.escape_img=Image.open("images/escape.png")
-        self.escape_img=self.escape_img.resize((35,35))
+        self.escape_img=self.escape_img.resize((35,35))# Resize image
         self.escape_img = ImageTk.PhotoImage(self.escape_img)
 
         #create action bar and add all window frames
@@ -666,6 +682,7 @@ class gui:
         # start main loop
         self.root.mainloop()
 
+        #Close every running opperation
         self.attack_detecter.scanning=False
 
         self.net_scanner.stop_flag=True
@@ -674,73 +691,95 @@ class gui:
 
     # function to update device table
     def update_device_table(self):
-        if not self.net_scanner.is_ps_all and tk.DISABLED in self.ps_button.state() and len(self.device_table.get_children())>0:
+        # enable Power Status button if devices are not all powered and button is disabled
+        if not self.net_scanner.is_ps_all and tk.DISABLED in self.ps_button.state() and len(self.device_table.get_children()) > 0:
             self.ps_button.config(state=tk.NORMAL)
         
-        if not self.net_scanner.is_resolving_names and tk.DISABLED in self.names_button.state() and len(self.device_table.get_children())>0:
+        # enable Resolve Names button if names are not resolving and button is disabled
+        if not self.net_scanner.is_resolving_names and tk.DISABLED in self.names_button.state() and len(self.device_table.get_children()) > 0:
             self.names_button.config(state=tk.NORMAL)
         
+        # check if network scanning has stopped
         if self.scanning and not self.net_scanner.scanning:
-            if self.scan_range_options.get()=="Manual":
+            # enable IP input field if scanning range is manual
+            if self.scan_range_options.get() == "Manual":
                 self.ip_input.config(state=tk.NORMAL)
-            self.progress_bar["value"]=0
+            
+            # reset progress bar, disable Stop button, and set scanning flag to False
+            self.progress_bar["value"] = 0
             self.stop_button.config(state=tk.DISABLED)
-            self.scanning=False
+            self.scanning = False
+            
+            # enable Scan button, scanning range options, and set scanning range options to readonly
             self.scan_button.config(state=tk.NORMAL)
             self.scan_range_options.config(state=tk.NORMAL)
             self.scan_range_options.config(state="readonly")
+            
+            # clear device table and insert device data
             self.device_table.delete(*self.device_table.get_children())
             devices = self.net_scanner.devices
-            for i,device in enumerate(devices):
+            for i, device in enumerate(devices):
+                # set device icon based on device status
                 if device.is_alive:
-                    image=self.device_img
+                    image = self.device_img
                 else:
-                    image=self.dead_device_img
-                added=''
-                if device.ip==self.my_ip:
-                    added=' (You)'
-                    image=self.me_img
-                elif device.ip==self.router_ip:
-                    added=' (Default Gateway)'
-                    image=self.router_img
+                    image = self.dead_device_img
+                
+                added = ''
+                # add label to device name if it's the user's device or the router
+                if device.ip == self.my_ip:
+                    added = ' (You)'
+                    image = self.me_img
+                elif device.ip == self.router_ip:
+                    added = ' (Default Gateway)'
+                    image = self.router_img
 
-                device_row=self.device_table.insert("", "end",str(i),text='',image=image, values=[device.name+added,device.ip,device.mac,device.mac_vendor,f'{device.data_transfered} Bytes'])
-                self.device_table.insert(device_row,"end",device_row+"_0",values=[" Open Ports:"]+device.get_port_desc())
+                # insert device data into table
+                device_row = self.device_table.insert("", "end", str(i), text='', image=image, values=[device.name+added, device.ip, device.mac, device.mac_vendor, f'{device.data_transfered} Bytes'])
+                self.device_table.insert(device_row, "end", device_row+"_0", values=[" Open Ports:"]+device.get_port_desc())
+            
+            # enable Network Test button after scan is complete
             self.run_network_test_button.config(state=tk.NORMAL)
         else:
             try:
-                for i,item_id in enumerate(self.device_table.get_children()):
-                    device=self.net_scanner.devices[i]
+                # update device data in table for each device
+                for i, item_id in enumerate(self.device_table.get_children()):
+                    device = self.net_scanner.devices[i]
                     self.net_scanner.update_data_transfered()
-                    added=''
-
+                    
+                    added = ''
+                    # set device icon based on device status
                     if device.is_alive:
-                        image=self.device_img
+                        image = self.device_img
                     else:
-                        image=self.dead_device_img
+                        image = self.dead_device_img
+                    
+                    added = ''
+                    # add label to device name if it's the user's device or the router
+                    if device.ip == self.my_ip:
+                        added = ' (You)'
+                        image = self.me_img
+                    elif device.ip == self.router_ip:
+                        added = ' (Default Gateway)'
+                        image = self.router_img
 
-                    added=''
-                    if device.ip==self.my_ip:
-                        added=' (You)'
-                        image=self.me_img
-                    elif device.ip==self.router_ip:
-                        added=' (Default Gateway)'
-                        image=self.router_img
-
-                    self.device_table.item(item_id,text='',image=image,values=[device.name+added,device.ip,device.mac,device.mac_vendor,f'{device.data_transfered} Bytes'])
+                    # update device data in table
+                    self.device_table.item(item_id, text='', image=image, values=[device.name+added, device.ip, device.mac, device.mac_vendor, f'{device.data_transfered} Bytes'])
                     if device.currently_port_scanning:
+                        #Add port scaning in progress image
                         self.device_table.item(item_id+"_0",text='',image=self.ps_load_img,values=[" Open Ports:"]+device.get_port_desc())
                     else:
                         self.device_table.item(item_id+"_0",image=tk.PhotoImage(),values=[" Open Ports:"]+device.get_port_desc())
             except Exception as e:
                 print(e)
-                pass
 
         self.root.update()
 
+        #Run this function again in 700 ms (0.7 seconds)
         self.root.after(700,self.update_device_table)
 
     def update_progress_bar(self):
+        #Function to update the progress bar while scanning the network
         if not self.scanning:
             self.progress_bar["value"]=0
         
@@ -753,98 +792,141 @@ class gui:
 
     # function to handle start scanning button press
     def start_scan(self):
+        # if the scanning range option is set to manual
         if self.scan_range_options.get() == "Manual":
+            # parse the IP input entered by the user
             succeded=self.net_scanner.parse_ip_input(self.ip_input.get())
+            # if the parsing failed, show an error message and return
             if not succeded:
                 messagebox.showerror("Error", "Invalid Ip range, Check Input!")
                 return
+        # otherwise, set the IP range to the network IP range
         else:
             self.net_scanner.ips_to_scan=get_net_info.get_ip_info()[3]
 
+        # set scanning flag to true
         self.net_scanner.scanning=True
         self.scanning = True
+        # start a new thread to scan the network
         self.scanning_thr=threading.Thread(target=self.net_scanner.scan_network)
         self.scanning_thr.start()
 
+        # set the maximum value of the progress bar
         self.progress_bar["maximum"]=len(self.net_scanner.ips_to_scan)+140
 
+        # enable the stop button and disable the network test and scan buttons
         self.stop_button.config(state=tk.NORMAL)
         self.run_network_test_button.config(state=tk.DISABLED)
+        # update the progress bar
         self.update_progress_bar()
+        # if the device table is empty, update it
         if len(self.device_table.get_children())==0:
             self.update_device_table()
+        # disable the scan button and scan range option
         self.scan_button.config(state=tk.DISABLED)
         self.scan_range_options.config(state=tk.DISABLED)
+        # disable the IP input
         self.ip_input.config(state=tk.DISABLED)
 
     # function to handle stop scanning button press
     def stop_scan(self):
+        # disable the stop button and set the stop flag
         self.stop_button.config(state=tk.DISABLED)
         self.net_scanner.stop_flag=True
 
     # function to get selected row in device table
     def get_selected_table_row(self,event):
+        # get the ID of the selected row in the table
         self.selected_table_row = self.device_table.identify_row(event.y).removesuffix("_0")
 
     def toggle_ip_input(self,scan_range_options, ip_input):
+        # if the scanning range option is set to manual, enable the IP input
         if scan_range_options.get() == "Manual":
             ip_input.config(state=tk.NORMAL)
+        # otherwise, disable the IP input
         else:
             ip_input.config(state=tk.DISABLED)
 
+    #Function to display the right click menu
     def show_popup_menu(self,event):
+        # Get the ID of the row that was clicked on
         row_id = self.device_table.identify_row(event.y).removesuffix("_0")
+        
+        # If the row ID is invalid, return early
         if not row_id:
             return
+        
+        # Convert the row ID to a numeric value
         row_num=int(row_id)
         if row_num != "":
+            # Create a popup menu object
             popup_menu = tk.Menu(self.root, tearoff=0)
+            
+            # Add scan options to the popup menu if the device is currently alive
             if self.net_scanner.devices[row_num].is_alive:
+                # Add a command to try to resolve the name of the device
                 popup_menu.add_command(label="Try to resolve name",command=lambda:self.try_to_resolve_name(row_num))
+                
+                # If the device is not currently being port scanned, add port scanning options
                 if not self.net_scanner.devices[row_num].currently_port_scanning:
+                    # Add a command to scan popular ports
                     popup_menu.add_command(label="Scan Popular Ports",command=lambda:self.popular_port_scan(row_num))
+                    # Add a command to perform an intense port scan
                     popup_menu.add_command(label="Intense Port Scan",command=lambda:self.create_port_scan_popup(row_num))
+                # Otherwise, disable the port scanning options
                 else:
                     popup_menu.add_command(label="Scan Popular Ports",command=lambda:self.popular_port_scan(row_num),state=tk.DISABLED)
                     popup_menu.add_command(label="Intense Port Scan",command=lambda:self.create_port_scan_popup(row_num),state=tk.DISABLED)
+            # If the device is not alive, disable all scan options
             else:
                 popup_menu.add_command(label="Try to resolve name",command=lambda:self.try_to_resolve_name(row_num),state=tk.DISABLED)
                 popup_menu.add_command(label="Scan Popular Ports",command=lambda:self.popular_port_scan(row_num),state=tk.DISABLED)
                 popup_menu.add_command(label="Intense Port Scan",command=lambda:self.create_port_scan_popup(row_num),state=tk.DISABLED)
 
-            popup_menu.add_separator()
-            cmd_menu=tk.Menu(popup_menu,tearoff=False)
-            popup_menu.add_cascade(label="CMD tools", menu=cmd_menu)
-            # Add items to the expandable group
-            ip=self.device_table.item(row_id, "values")[1]
-            cmd_menu.add_command(label="ping",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && ping {ip}"')).start())
-            cmd_menu.add_command(label="tracert",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && tracert {ip}"')).start())
-            cmd_menu.add_command(label="arp -a",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && arp -a"')).start())
-            cmd_menu.add_command(label="netstat -a",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && netstat -a"')).start())
-            cmd_menu.add_command(label="ipconfig",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && ipconfig"')).start())
-            cmd_menu.add_command(label="nbtstat",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && nbtstat -a {ip}"')).start())
+        # Add a separator between the scan options and the CMD tools
+        popup_menu.add_separator()
+        
+        # Create a submenu for CMD tools
+        cmd_menu=tk.Menu(popup_menu,tearoff=False)
+        popup_menu.add_cascade(label="CMD tools", menu=cmd_menu)
+        
+        # Add items to the CMD tools submenu
+        ip=self.device_table.item(row_id, "values")[1]
+        cmd_menu.add_command(label="ping",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && ping {ip}"')).start())
+        cmd_menu.add_command(label="tracert",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && tracert {ip}"')).start())
+        cmd_menu.add_command(label="arp -a",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && arp -a"')).start())
+        cmd_menu.add_command(label="netstat -a",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && netstat -a"')).start())
+        cmd_menu.add_command(label="ipconfig",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && ipconfig"')).start())
+        cmd_menu.add_command(label="nbtstat",command=lambda:threading.Thread(target=lambda:os.system(f'start cmd /k "mode con: cols=300 lines=1500 && nbtstat -a {ip}"')).start())
 
-            popup_menu.add_separator()
-            popup_menu.add_command(label="Copy IP Address", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[1]))
-            popup_menu.add_command(label="Copy MAC Address", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[2]))
-            popup_menu.add_command(label="Copy MAC Vendor", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[3]))
-            popup_menu.add_command(label="Copy Data Transfered", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[4]))
-            popup_menu.add_command(label="Copy Open Ports", command=lambda: self.copy_to_clipboard(' '.join(self.net_scanner.devices[row_num].get_port_desc())))
+        # Add a separator between the CMD tools and the copy options
+        popup_menu.add_separator()
+        #add all copy options
+        popup_menu.add_command(label="Copy IP Address", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[1]))
+        popup_menu.add_command(label="Copy MAC Address", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[2]))
+        popup_menu.add_command(label="Copy MAC Vendor", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[3]))
+        popup_menu.add_command(label="Copy Data Transfered", command=lambda: self.copy_to_clipboard(self.device_table.item(row_id, "values")[4]))
+        popup_menu.add_command(label="Copy Open Ports", command=lambda: self.copy_to_clipboard(' '.join(self.net_scanner.devices[row_num].get_port_desc())))
 
-            popup_menu.add_separator()
-            popup_menu.add_command(label="Shutdown", command=lambda: self.shutdown_restart_window(self.device_table.item(row_id, "values")[1],'Shutdown'))
-            popup_menu.add_command(label="Restart", command=lambda: self.shutdown_restart_window(self.device_table.item(row_id, "values")[1],'Restart'))
+        #Add the shutdown and restart options to the menu
+        popup_menu.add_separator()
+        popup_menu.add_command(label="Shutdown", command=lambda: self.shutdown_restart_window(self.device_table.item(row_id, "values")[1],'Shutdown'))
+        popup_menu.add_command(label="Restart", command=lambda: self.shutdown_restart_window(self.device_table.item(row_id, "values")[1],'Restart'))
 
-            popup_menu.post(event.x_root, event.y_root)
+        #Display the menu where the right click accured
+        popup_menu.post(event.x_root, event.y_root)
 
     def run_shutdown_restart_action(self,popup,ip,action,run_button,wait_time_entry,message_entry,result_value_label):
+        #Function to execute the shutdown and menu functions according to the action selected
         run_button.config(state=tk.DISABLED)
 
+        #Check if the user entered a valid time
         if not re.match(r'^\d+$',wait_time_entry.get()) or int(wait_time_entry.get())>315360000:
             if not re.match(r'^\d+$',wait_time_entry.get()) :
                 messagebox.showerror("Error", "Invalid Wait Time Input! Check It and try again!")
             else:
                 messagebox.showerror("Error", "Wait time has to be smaller than 315360000 seconds (ten years)")
+            #Get all the current values and create a new window
             message=message_entry.get("1.0", "end-1c")
             time=wait_time_entry.get()
             status=result_value_label.cget("text")
@@ -852,8 +934,10 @@ class gui:
             self.shutdown_restart_window(ip,action,message,time,status)
             return
         
+        #create a list to hold the result of the action
         output=[]
 
+        #Exsecute the selected function
         if action=="Shutdown":
             action_thr=threading.Thread(target=lambda:shutdown_restart.shutdown(output,ip,wait_time_entry.get(),message_entry.get("1.0", "end-1c")))
         if action=="Restart":
@@ -861,23 +945,30 @@ class gui:
         
         action_thr.start()
 
+        #start waiting for the result of the action
         self.wait_for_shutdown_restart_result(popup,output,result_value_label,run_button)
 
     def wait_for_shutdown_restart_result(self,popup,output,result_value_label,run_button):
+        #A function that waits for the results of the shutdown or restart function and updates it when the action has finished
+        #If there is no output yet, return to waiting
         if len(output)==0:
             popup.after(50,lambda: self.wait_for_shutdown_restart_result(popup,output,result_value_label,run_button))
             return
                 
+        #Devide the results to lines
         self.line_width = 50
         splited_text ="\n".join(textwrap.wrap(output[0], width=self.line_width))
+        #Color the result area
         if "Succes!" in output[0]:
             result_value_label.config(text=splited_text,background="green")
         else:
             result_value_label.config(text=splited_text,background="red")
 
+        #Reactivate the option to run the action   
         run_button.config(state=tk.NORMAL)
 
     def shutdown_restart_window(self,ip,action,message='',time='',status='\n\n'):
+        #Create the window for the shutdown and restart actions
         # Create a new popup window
         popup = tk.Toplevel(self.root)
         popup.title(f"{action} {ip}")
@@ -910,18 +1001,22 @@ class gui:
         popup.mainloop()
 
     def copy_to_clipboard(self,value):
+        #A Function that copies a value to the clipboard
         self.root.clipboard_clear()
         self.root.clipboard_append(value)
 
     def try_to_resolve_name(self,device_pos):
+        #A Function that tries to resolve the name of the selected device
         device:Device.Device = self.net_scanner.devices[device_pos]
         threading.Thread(target=device.resolve_name).start()
 
     def popular_port_scan(self,device_pos):
+        #A Function that scan popular on the selected device
         device:Device.Device = self.net_scanner.devices[device_pos]
         threading.Thread(target=device.popular_port_scan).start()
 
     def check_threads_ratio(self,start_port, end_port, chunk_size):
+        #Check if the values the user provided do not create a problem with the threads
         num_ports = end_port - start_port + 1
         if chunk_size>num_ports:
             return "Chunk size Bigger than the number of ports to scan!"
@@ -938,19 +1033,23 @@ class gui:
         return ''
 
     def scan_ports(self,start_port_entry,end_port_entry,chunk_size_entry,popup,device_pos,accuracy):
+        #A function that executes an intense port scan on the selected device
         try:
             start_port = int(start_port_entry.get())
             end_port = int(end_port_entry.get())
             chunk_size = int(chunk_size_entry.get())
         except:
+            #if one or more of the int() fail
             messagebox.showerror("Error", "Invalid Input! Check It and try again!")
             return
         
         device:Device.Device = self.net_scanner.devices[device_pos]
 
+        #Check for a problem with the tread ration and show an error with it
         if self.check_threads_ratio(start_port, end_port, chunk_size)!='':
             messagebox.showerror("Error",self.check_threads_ratio(start_port, end_port, chunk_size))
             return
+        #start the scan
         threading.Thread(target=lambda:device.intense_port_scan(start_port,end_port,chunk_size,accuracy)).start()
         
         # Destroy popup window before performing port scan
@@ -1002,14 +1101,17 @@ class gui:
         self.ports_scan_button.pack()
 
     def port_scan_all_devices(self):
+        #A function that scans popular ports on all the devices
         threading.Thread(target=self.net_scanner.port_scan_all_devices).start()
         self.ps_button.config(state=tk.DISABLED)
 
     def resolve_all_names(self):
+        #A function that tries to resolve all the names of the devices
         threading.Thread(target=self.net_scanner.resolve_all_names).start()
         self.names_button.config(state=tk.DISABLED)
 
     def update_password(self):
+        #Check if the network password has been found or if a problem accoured
         if self.pass_tester.password!='Finding...':
             self.pass_label.config(text=self.pass_tester.password)
             if self.pass_tester.password not in ['Failed to find password','Open network, no password']:
@@ -1018,62 +1120,84 @@ class gui:
                 self.no_pass=True
 
         else:
+            #If the password is still being resolved, try again in 0.1 seconds
             self.root.after(100,self.update_password)
 
     def on_pass_option_changed(self,*args):
+        # Check if the password option is selected
         if self.pass_option.get():
+            # Enable the run password test button if the "no_pass" flag is set
             if self.no_pass:
                 self.run_pass_test_button.config(state=tk.NORMAL)
+            # Enable the password entry widget
             self.password_entry.config(state="normal")
         else:
+            # Disable the run password test button if the "no_pass" flag is set
             if self.no_pass:
                 self.run_pass_test_button.config(state=tk.DISABLED)
+            # Disable the password entry widget
             self.password_entry.config(state="disabled")
 
     def run_pass_test(self):
+        # Get the password from the password entry widget or use the default password if the "no_pass" flag is set
         if self.pass_option.get():
             password=self.password_entry.get()
         else:
             password=self.pass_tester.password
-        
+            
+        # Check if the password is valid
         if not password or password=='Finding...':
             messagebox.showerror("Error",'Error handaling password. check input ot try again!')
             return
-
+        
+        # Test the password and get the results
         results=self.pass_tester.is_good_pass(password)
 
+        # Initialize a dictionary to count the number of critical, important, and recommended tests passed
         level_count={"c":0,"i":0,"r":0}
 
+        # Loop through the test results and update the GUI based on the result of each test
         for i in range(len(results)):
             if results[i]==1:
+                # Increment the count of tests passed for the corresponding level of severity
                 level_count[self.pass_tester.level_dict[i]]+=1
+                # Update the image of the corresponding test label to the "passed" image
                 self.test_label_list[i].config(image=self.passed_img)
             else:
+                # Update the image of the corresponding test label to the "failed" image
                 self.test_label_list[i].config(image=self.failed_img)
 
+        # Update the overall test results label with the number of tests passed
         self.overall_results_label.config(text=f"Overall, the password passed {results.count(1)} out of 12 tests:")
 
+        # Update the critical results label with the number of critical tests passed
         self.critical_results_label.config(text=f"{level_count['c']}/5 critical tests")
 
+        # Update the important results label with the number of important tests passed
         self.important_results_label.config(text=f"{level_count['i']}/4 important tests")
 
+        # Update the recommended results label with the number of recommended tests passed
         self.recommended_results_label.config(text=f"{level_count['r']}/3 recommended tests")
 
+        # Update the recommendation label based on the number of tests passed and their level of severity
         if level_count['c']!=5 or level_count['i']<3 or level_count['r']==0:
-            self.changing_recommendation_label.config(text="It is highy recommended that you change your password!")
+            self.changing_recommendation_label.config(text="It is highly recommended that you change your password!")
         elif results.count(1)!=12:
             self.changing_recommendation_label.config(text="Your password is strong enough but it would be good to change it")
         else:
             self.changing_recommendation_label.config(text="Your password is very strong! Good Job!")
 
     def copy_password(self):
+        # Clear the clipboard and append the generated password to it
         self.root.clipboard_clear()
         self.root.clipboard_append(self.generated_password_label.cget("text"))
 
     def generate_password(self):
+        # Generate a new password using the password tester object and update the GUI with the new password
         self.generated_password_label.configure(text=self.pass_tester.generate_password())
 
     def update_network_test_results(self):
+        # If network tester is not scanning, enable buttons and update labels with results
         if not self.network_tester.scanning:
             self.run_network_test_button.config(state=tk.NORMAL)
             self.download_label.config(text=f"{self.network_tester.download}")
@@ -1083,151 +1207,220 @@ class gui:
             self.bandwidth_label.config(text=f"{self.network_tester.bandwidth}")
             self.scan_button.config(state=tk.NORMAL)
         else:
+            # If still scanning, wait 100ms and try again
             self.root.after(100,self.update_network_test_results)
 
     def start_network_test(self):
+        # Disable network test button and start a new thread for network testing
         self.run_network_test_button.config(state=tk.DISABLED)
         threading.Thread(target=self.network_tester.full_test).start()
+        # Disable scan button and start animation
         self.scan_button.config(state=tk.DISABLED)
         self.animate_loading_gif()
+        # Start updating the network test results
         self.update_network_test_results()
 
     def animate_loading_gif(self,frame_idx=0):
+        # Delete current animation frame and show the next one
         self.loading_animation_canvas.delete("all")
         self.loading_animation_canvas.create_image(0, 0, anchor="nw", image=self.frames[frame_idx])
         frame_idx = (frame_idx + 1) % len(self.frames)
+        # If network test is still ongoing, wait 20ms and show the next frame
         if self.network_tester.scanning:
             self.loading_animation_canvas.after(20, self.animate_loading_gif, frame_idx)
         else:
+            # Otherwise, stop the animation
             self.loading_animation_canvas.delete("all")
 
     def update_attack_logs(self):
+        # Enable all attack logs
         logs=[self.arp_log,self.dos_log,self.brodcast_log,self.ps_log,self.malware_log]
-
         for log in logs:
             log.config(state='normal')
 
+        # Update attack logs with new records, if any
         for i,record in enumerate(self.attack_detecter.attacks_records.values()):
             for event in record:
+                # If event is not already in the log, wrap text and add it
                 if event.replace(' ','').replace('\n','') not in logs[i].get('1.0','end').replace(' ','').replace('\n',''):
                     self.line_width = 30
                     self.lined_text ="\n".join(textwrap.wrap(event, width=self.line_width))
                     self.lined_text+='\n\n'
                     logs[i].insert('end',self.lined_text)
 
+        # Disable all attack logs
         for log in logs:
             log.config(state='disabled')
         
+        # Start updating attack logs again in 1.5 seconds
         self.root.after(1500,self.update_attack_logs)
 
     def update_scale_value(self,val):
+        #Update the value of the scale when it is changed
         self.scale_value.set(str(int(float(val))))
 
     def control_request(self):
+        # Get IP from input field
         ip=self.controlled_ip_input.get()
+        
+        # Validate IP address
         if len(ip)<7 or re.search(r"[^0-9.]", ip) or ip.count('.')!=3:
+            # Show error message if invalid IP address
             messagebox.showerror("Error", "Invalid Ip, Check Input!")
             return
         ip_parts = ip.split('.')
         for part in ip_parts:
             if len(part)==0:
+                # Show error message if invalid IP address
                 messagebox.showerror("Error", "Invalid Ip, Check Input!")
                 return
         if not self.net_scanner.is_in_lan(ip):
+            # Show error message if IP address is not in LAN
             messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
             return
         if ip==self.my_ip:
+            # Show error message if IP address is the same as the current machine's IP
             messagebox.showerror("Error","Ip cannot be your ip, Check Input!")
             return
+        
         try:
+            # Validate IP address
             socket.inet_aton(ip)
             if int(ip_parts[-1])==0:
+                # Show error message if invalid IP address
                 messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
                 return 
         except:
+            # Show error message if invalid IP address
             messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
             return
         
+        # Get name and reason from input fields
         name=self.controller_name_input.get()
         reason=self.controller_reason_input.get()
 
         if re.search(r"[^a-zA-Z\s]", reason) or re.search(r"[^a-zA-Z\s]", name):
+            # Show error message if name or reason contains non-letter characters
             messagebox.showerror("Error", "Name and Reason can only contain letters")
             return
 
         if len(name)<3 or len(name)>30:
+            # Show error message if name is too short or too long
             messagebox.showerror("Error", "Name has to be longer than 3 letters and shorter than 30!")
             return
         
         if len(reason)<5 or len(reason)>40:
+            # Show error message if reason is too short or too long
             messagebox.showerror("Error", "Reason has to be longer than 5 letters and shorter than 40!")
             return
         
+        # Disable control button to prevent multiple requests
         self.control_button.config(state=tk.DISABLED)
         
+        # Start a new thread to send the control request to the remote machine
         t=threading.Thread(target=self.send_rc_request,args=(ip,name,reason))
         t.start()
 
-    def send_rc_request(self,ip,name,reason):
-        client=encrypted_client(ip,11123)
+    def send_rc_request(self, ip, name, reason):
+        # Create a new instance of encrypted_client using the given IP address and port number
+        client = encrypted_client(ip, 11123)
+
         try:
+            # Attempt to start the server and listen for incoming connections
             client.run_server()
         except:
-            self.rc_request_result_label.config(text="could not initiate connection",style='Red.TLabel')
+            # If the connection couldn't be initiated, show an error message and enable the control button again
+            self.rc_request_result_label.config(text="could not initiate connection", style='Red.TLabel')
             self.control_button.config(state=tk.NORMAL)
             return
+
         try:
+            # Send the name, reason, and scale value to the connected client
             client.send(f'{name},{reason},{self.scale_value.get()}')
-            self.rc_request_result_label.config(text="sent request...",style='Grey.TLabel')
-            response=client.recieve()
-            if response=='approved':
-                self.rc_request_result_label.config(text="connecting...",style='Grey.TLabel')
-                time.sleep(2) 
-                rc=RemoteController(ip)
-                this_pipe,other_pipe=multiprocessing.Pipe()
-                p=multiprocessing.Process(target=rc.start_connection,args=(other_pipe,))
+            # Update the UI to show that the request was sent
+            self.rc_request_result_label.config(text="sent request...", style='Grey.TLabel')
+            # Wait for a response from the client
+            response = client.recieve()
+
+            if response == 'approved':
+                # If the client approves the request, update the UI to show that the connection is being established
+                self.rc_request_result_label.config(text="connecting...", style='Grey.TLabel')
+                # Wait for 2 seconds to ensure that the client has enough time to establish the connection
+                time.sleep(2)
+                # Create a new instance of RemoteController using the given IP address
+                rc = RemoteController(ip)
+                # Create a pipe for communication between the current process and the newly created process
+                this_pipe, other_pipe = multiprocessing.Pipe()
+                # Start a new process that will handle the connection
+                p = multiprocessing.Process(target=rc.start_connection, args=(other_pipe,))
                 p.start()
-                exit_reason=this_pipe.recv()
-                if exit_reason=='controlled computer disconnected':
-                    self.rc_request_result_label.config(text="controlled computer stopped control or expirienced a problem/shut down!",style='Red.TLabel')
+                # Wait for the child process to send a message through the pipe
+                exit_reason = this_pipe.recv()
+                if exit_reason == 'controlled computer disconnected':
+                    # If the controlled computer disconnected during the session, show an error message
+                    self.rc_request_result_label.config(text="controlled computer stopped control or experienced a problem/shut down!", style='Red.TLabel')
                 else:
+                    # If the session was terminated for some other reason, clear the error message
                     self.rc_request_result_label.config(text="")
-                    
+                # Maximize the window to cover the entire screen
                 self.root.state('zoomed')
+                # Enable the control button again
                 self.control_button.config(state=tk.NORMAL)
             else:
-                self.rc_request_result_label.config(text="connection denied!",style='Red.TLabel')
+                # If the client denies the request, show an error message and enable the control button again
+                self.rc_request_result_label.config(text="connection denied!", style='Red.TLabel')
                 self.control_button.config(state=tk.NORMAL)
         except:
-            self.rc_request_result_label.config(text="request failed!",style='Red.TLabel')
+            # If the request fails for some other reason, show an error message and enable the control button again
+            self.rc_request_result_label.config(text="request failed!", style='Red.TLabel')
             self.control_button.config(state=tk.NORMAL)
 
     def send_sniff_request(self,ip,name,reason):
+        # Create an instance of the encrypted client
         client=encrypted_client(ip,28245)
+        
         try:
+            # Try to run the server
             client.run_server()
         except:
+            # If there is an error, show an error message and return
             self.sniff_request_result_label.config(text="could not initiate connection",style='Red.TLabel')
             self.sniff_button.config(state=tk.NORMAL)
             return
+        
         try:
+            # If the server is running, send the request
             client.send(f'{name},{reason}')
             self.sniff_request_result_label.config(text="sent request...",style='Grey.TLabel')
+            
+            # Wait for the response from the server
             response=client.recieve()
+            
+            # If the response is 'approved', start recieving data
             if response=='approved':
                 self.sniff_request_result_label.config(text="recieving data...",style='Grey.TLabel')
+                
+                # Create another instance of the encrypted client for sniffing
                 sniff_client=encrypted_client(ip,45689)
                 sniff_client.run_server()
+                
+                # Wait for 2 seconds before proceeding
                 time.sleep(2)
 
+                # Get the length of the data to be recieved
                 length=int(sniff_client.recieve())
+                
+                # Send an acknowledgement to the server
                 sniff_client.send('recieved')
+                
+                # Receive the data in chunks and append it to a byte string
                 recieved_bytes=b''
                 while len(recieved_bytes)<length:
                     res=sniff_client.recieve(1_000_000,isBytes=True)
                     sniff_client.send('recieved')
                     recieved_bytes+=res
 
+                # Write the recieved bytes to a file
                 with open('recieved_pcap.pcap','wb') as f:
                     f.write(recieved_bytes)
 
@@ -1255,101 +1448,126 @@ class gui:
                 self.pcap_oldest_value_label.config(text=f'{date} {hour}:{minute}:{second}')
 
                 try:
+                    # Close the client socket and delete the instance
                     sniff_client.soc.close()
                     del sniff_client
                 finally:
+                    # Enable buttons and show a success message
                     self.open_file_button.config(state=tk.NORMAL)
                     self.save_file_button.config(state=tk.NORMAL)
                     self.sniff_button.config(state=tk.NORMAL)
                     self.sniff_request_result_label.config(text="share completed",style='Grey.TLabel')
             else:
+                # If the response is not 'approved', show a denial message
                 self.sniff_request_result_label.config(text="request denied!",style='Red.TLabel')
                 self.sniff_button.config(state=tk.NORMAL)
         except Exception as e:
+            # If there is an error, show an error message and return
             self.sniff_request_result_label.config(text="request failed!",style='Red.TLabel')
             self.sniff_button.config(state=tk.NORMAL)
 
     def sniff_request(self):
-        ip=self.sender_ip_input.get()
-        if len(ip)<7 or re.search(r"[^0-9.]", ip) or ip.count('.')!=3:
+        # Get the IP address entered by the user
+        ip = self.sender_ip_input.get()
+
+        # Check if the IP address is valid
+        if len(ip) < 7 or re.search(r"[^0-9.]", ip) or ip.count('.') != 3:
             messagebox.showerror("Error", "Invalid Ip, Check Input!")
             return
+
+        # Split the IP address into its parts and check each part
         ip_parts = ip.split('.')
         for part in ip_parts:
-            if len(part)==0:
+            if len(part) == 0:
                 messagebox.showerror("Error", "Invalid Ip, Check Input!")
                 return
+
+        # Check if the IP address is in the local network
         if not self.net_scanner.is_in_lan(ip):
             messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
             return
-        
-        if ip==self.my_ip:
-            messagebox.showerror("Error","Ip cannot be your ip, Check Input!")
+
+        # Check if the IP address is not the same as the user's own IP address
+        if ip == self.my_ip:
+            messagebox.showerror("Error", "Ip cannot be your ip, Check Input!")
             return
+
+        # Check if the IP address is valid using the socket module
         try:
             socket.inet_aton(ip)
-            if int(ip_parts[-1])==0:
+            if int(ip_parts[-1]) == 0:
                 messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
-                return 
+                return
         except:
             messagebox.showerror("Error", "Invalid Ip or not in lan, Check Input!")
             return
-        
-        name=self.reciever_name_input.get()
-        reason=self.reciever_reason_input.get()
 
+        # Get the reciever's name and reason for sniffing
+        name = self.reciever_name_input.get()
+        reason = self.reciever_reason_input.get()
+
+        # Check if the name and reason contain only letters
         if re.search(r"[^a-zA-Z\s]", reason) or re.search(r"[^a-zA-Z\s]", name):
             messagebox.showerror("Error", "Name and Reason can only contain letters")
             return
 
-        if len(name)<3 or len(name)>30:
+        # Check if the name is between 3 and 30 characters and the reason is between 5 and 40 characters
+        if len(name) < 3 or len(name) > 30:
             messagebox.showerror("Error", "Name has to be longer than 3 letters and shorter than 30!")
             return
-        
-        if len(reason)<5 or len(reason)>40:
+
+        if len(reason) < 5 or len(reason) > 40:
             messagebox.showerror("Error", "Reason has to be longer than 5 letters and shorter than 40!")
             return
-        
+
+        # Disable the "Sniff" button
         self.sniff_button.config(state=tk.DISABLED)
-        
-        t=threading.Thread(target=self.send_sniff_request,args=(ip,name,reason))
+
+        # Start a new thread to send the sniff request
+        t = threading.Thread(target=self.send_sniff_request, args=(ip, name, reason))
         t.start()
 
     def save_file(self):
         # Prompt the user to choose a location to save the file
         file_path = filedialog.asksaveasfilename(defaultextension=".pcap")
         if file_path:
-            # Copy the example file to the chosen location
+            # Copy the file to the chosen location
             shutil.copy("recieved_pcap.pcap", file_path)
 
     def open_file(self):
         try:
+            # Open the file
             os.system(f"recieved_pcap.pcap")
         except:
+            # Show an error message if the file cannot be opened
             messagebox.showerror('Error','File opening failed. Open menually or try again!')
             return
 
     def check_connection(self):
         while True:
+            # If scanning is not in progress, exit the loop and the function
             if not self.attack_detecter.scanning:
                 sys.exit()
             try:
+                # Get network information and wait for 0.1 seconds
                 get_net_info.get_ip_info()
                 time.sleep(0.1)
             except:
+                # Show an error message if a problem is detected with the network
                 messagebox.showerror("Error", "A problem in network was detected. Check connection and restart the app!")
+                # Stop scanning, close all tools, and exit the program
                 self.attack_detecter.scanning=False
-
                 self.net_scanner.stop_flag=True
-
                 self.net_scanner.close_all_tools()
-
                 sys.exit()
 
     def on_click_link(self,event, link):
+        # Open the link in the default web browser
         import webbrowser
         webbrowser.open_new(link)
 
 if __name__=='__main__':
+    # Ensure that the program runs correctly on Windows
     multiprocessing.freeze_support()
+    # Create a GUI object and start the application
     app=gui()
