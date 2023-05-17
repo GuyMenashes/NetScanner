@@ -68,6 +68,9 @@ class gui:
         # Set the title of the window
         self.root.title("Network Manager")
 
+        #Sets the icon of the root window to 'icon.ico' in a separate thread, allowing the GUI to remain responsive to user input while the operation completes.
+        threading.Thread(target=lambda:self.root.iconbitmap('icon.ico')).start()
+
         # Initialize a thread to check the connection status
         self.connection_check_thr=threading.Thread(target=self.check_connection)
         self.connection_check_thr.start()
